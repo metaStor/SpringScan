@@ -7,7 +7,7 @@ import java.net.URL;
  * @date : Created 2022/4/7
  * @description: SpringCoreRCE issue
  * */
-public class SpringCoreIssue implements IScanIssue {
+public class SpringIssue implements IScanIssue {
 
     private URL url;
     private String issueName;
@@ -21,7 +21,7 @@ public class SpringCoreIssue implements IScanIssue {
     private IHttpRequestResponse[] httpMessages;
     private IHttpService httpService;
 
-    public SpringCoreIssue(URL url, String issueName, int issueType, String severity, String confidence, String issueBackground, String remediationBackground, String issueDetail, String remediationDetail, IHttpRequestResponse[] httpMessages, IHttpService httpService) {
+    public SpringIssue(URL url, String issueName, int issueType, String severity, String confidence, String issueBackground, String remediationBackground, String issueDetail, String remediationDetail, IHttpRequestResponse[] httpMessages, IHttpService httpService) {
         this.url = url;
         this.issueName = issueName;
         this.issueType = issueType;

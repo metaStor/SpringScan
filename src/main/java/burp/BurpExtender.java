@@ -13,7 +13,7 @@ import java.io.PrintWriter;
 public class BurpExtender implements IBurpExtender
 {
     private final String NAME = "SpringScan";
-    private final String VERSION = "1.0";
+    private final String VERSION = "1.1";
 
     public IBurpExtenderCallbacks callbacks;
     public IExtensionHelpers helpers;
@@ -55,6 +55,7 @@ public class BurpExtender implements IBurpExtender
         String logo = " ____             _             ____                  \n/ ___| _ __  _ __(_)_ __   __ _/ ___|  ___ __ _ _ __  \n\\___ \\| '_ \\| '__| | '_ \\ / _` \\___ \\ / __/ _` | '_ \\ \n ___) | |_) | |  | | | | | (_| |___) | (_| (_| | | | |\n|____/| .__/|_|  |_|_| |_|\\__, |____/ \\___\\__,_|_| |_|\n      |_|                 |___/                       \n";
         String author = "by metaStor";
         String line = "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-        return logo + line + "V" + this.VERSION + line + author;
+        String payloads = "Support Payload:\n[+] Spring Core RCE (CVE-2022-22965)\n[+] Spring Cloud Function SpEL RCE (CVE-2022-22963)\n";
+        return logo + line + "V" + this.VERSION + line + author + "\n" + payloads;
     }
 }
