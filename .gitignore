@@ -1,0 +1,12 @@
+.DS_Store
+*/.DS_Store
+.idea/
+out/
+target/
+dependency-reduced-pom.xml
+pom.xml.versionsBackup
+.factorypath
+*.ipr
+*.iml
+*.iws
+*.class
