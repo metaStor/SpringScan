@@ -116,47 +116,51 @@ public class Scanner implements IScannerCheck {
              */
             if (this.burpExtender.tags.getSettingUi().isErrorCheck()) {
                 // Spring Core RCE (CVE-2022-22965)
-                if (responseInfo.getStatusCode() == 404) return null;  // 跳过404
-                IScanIssue errorIssue = this.errorScan(iHttpRequestResponse);
-                if (errorIssue != null) {
-                    isVul = true;
-                    this.burpExtender.stdout.println(String.format("[+] ErrorChecker found %s Vul!", url));
-                    issues.add(errorIssue);
-                    // 扫描结果输出到UI
-                    this.burpExtender.tags.getScannerUi().save(
-                            id,
-                            "ErrorCheck",
-                            this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getMethod(),
-                            String.valueOf(this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getUrl()),
-                            String.valueOf(this.helpers.analyzeResponse(errorIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                            "[+] SpringCore RCE",
-                            errorIssue.getHttpMessages()[0]
-                    );
+                if (responseInfo.getStatusCode() != 404) {  // 跳过404
+                    IScanIssue errorIssue = this.errorScan(iHttpRequestResponse);
+                    if (errorIssue != null) {
+                        isVul = true;
+                        this.burpExtender.stdout.println(String.format("[+] ErrorChecker found %s Vul!", url));
+                        issues.add(errorIssue);
+                        // 扫描结果输出到UI
+                        this.burpExtender.tags.getScannerUi().save(
+                                id,
+                                "ErrorCheck",
+                                this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getMethod(),
+                                String.valueOf(this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getUrl()),
+                                String.valueOf(this.helpers.analyzeResponse(errorIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                                "[+] SpringCore RCE",
+                                errorIssue.getHttpMessages()[0]
+                        );
+                    }
+                    // 已扫描uri的集合
+                    this.allScan.add(url_md5);
                 }
-                // 已扫描uri的集合
-                this.allScan.add(url_md5);
             }
             /**
              * 回连扫描
              */
             if (this.burpExtender.tags.getSettingUi().isReverseCheck()) {
                 // Spring Core RCE (CVE-2022-22965)
-                if (responseInfo.getStatusCode() == 404) return null;  // 跳过404
-                IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse);
-                if (reverseIssue != null) {
-                    isVul = true;
-                    this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
-                    issues.add(reverseIssue);
-                    // 扫描结果输出到UI
-                    this.burpExtender.tags.getScannerUi().save(
-                            id,
-                            "ReverseCheck",
-                            this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getMethod(),
-                            String.valueOf(this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getUrl()),
-                            String.valueOf(this.helpers.analyzeResponse(reverseIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                            "[+] Spring Core RCE",
-                            reverseIssue.getHttpMessages()[0]
-                    );
+                if (responseInfo.getStatusCode() != 404) {  // 跳过404
+                    IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse);
+                    if (reverseIssue != null) {
+                        isVul = true;
+                        this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
+                        issues.add(reverseIssue);
+                        // 扫描结果输出到UI
+                        this.burpExtender.tags.getScannerUi().save(
+                                id,
+                                "ReverseCheck",
+                                this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getMethod(),
+                                String.valueOf(this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getUrl()),
+                                String.valueOf(this.helpers.analyzeResponse(reverseIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                                "[+] Spring Core RCE",
+                                reverseIssue.getHttpMessages()[0]
+                        );
+                    }
+                    // 已扫描uri的集合
+                    this.allScan.add(url_md5);
                 }
                 // Spring Cloud Function SpEL RCE (CVE-2022-22963)
                 IScanIssue spelIssue = this.CloudFunctionSpelRCE(iHttpRequestResponse);
@@ -175,8 +179,6 @@ public class Scanner implements IScannerCheck {
                             spelIssue.getHttpMessages()[0]
                     );
                 }
-                // 已扫描uri的集合
-                this.allScan.add(url_md5);
             }
             // 不存在漏洞, 更新UI
             if (!isVul) {
