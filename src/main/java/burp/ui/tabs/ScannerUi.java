@@ -23,7 +23,7 @@ public class ScannerUi extends AbstractTableModel implements IMessageEditorContr
     private IHttpRequestResponse currentHttp;
     private IMessageEditor messageRequest;
     private IMessageEditor messageResponse;
-    private List<ScannerUi.TableData> tasks = new ArrayList<>();
+    private List<ScannerUi.TableData> tasks = new ArrayList<ScannerUi.TableData>();  // 适配jdk8语法
 
     // ui
     private JTabbedPane tabs;
@@ -49,7 +49,7 @@ public class ScannerUi extends AbstractTableModel implements IMessageEditorContr
         this.httpSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         this.httpSplitPane.setDividerLocation(.5d);  // 位置均分
 
-        ScannerUi.Table table = new ScannerUi.Table(this);
+        ScannerUi.Table table = new ScannerUi.Table(ScannerUi.this);
         this.tablePane = new JScrollPane(table);
 
         this.requestPane = new JTabbedPane();
@@ -226,7 +226,7 @@ public class ScannerUi extends AbstractTableModel implements IMessageEditorContr
         public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
             // JTable的autoCreateRowSorter为true，则自动实现了排序功能，
             // https://blog.csdn.net/liangjiemin11/article/details/14209361
-            ScannerUi.TableData data = ScannerUi.this.tasks.get(convertColumnIndexToModel(rowIndex));
+            ScannerUi.TableData data = ScannerUi.this.tasks.get(convertRowIndexToModel(rowIndex));
             ScannerUi.this.messageRequest.setMessage(data.iHttpRequestResponse.getRequest(), true);
             ScannerUi.this.messageResponse.setMessage(data.iHttpRequestResponse.getResponse(), false);
             ScannerUi.this.currentHttp = data.iHttpRequestResponse;

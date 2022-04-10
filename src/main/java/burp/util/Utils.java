@@ -52,7 +52,7 @@ public class Utils {
      * @return Map
      */
     public static IPoc[] getPocs(Integer[] rangePocs) {
-        List<IPoc> pocs = new ArrayList<>();
+        List<IPoc> pocs = new ArrayList<IPoc>();
         try {
             for (Integer no : rangePocs) {
                 Class<?> poc = Class.forName("burp.payload.pocs.POC" + String.valueOf(no));

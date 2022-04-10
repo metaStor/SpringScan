@@ -68,7 +68,7 @@ public class SettingUi {
         this.reverseLabel.setForeground(new Color(255, 89, 18));
         this.reverseLabel.setFont(new Font("Serif", Font.PLAIN, this.reverseLabel.getFont().getSize() + 2));
 
-        this.backendSelector = new JComboBox<>(this.getSelectors());
+        this.backendSelector = new JComboBox<String>(this.getSelectors());
         this.backendSelector.setSelectedIndex(0);
         this.backendSelector.setMaximumSize(this.backendSelector.getPreferredSize());
 
@@ -124,7 +124,7 @@ public class SettingUi {
     }
 
     private String[] getSelectors() {
-        ArrayList<String> selectors = new ArrayList<>();
+        ArrayList<String> selectors = new ArrayList<String>();
         for (Backends backend: Backends.values()) {
             selectors.add(backend.name().trim());
         }

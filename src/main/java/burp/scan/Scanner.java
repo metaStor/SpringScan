@@ -63,7 +63,7 @@ public class Scanner implements IScannerCheck {
     };
 
     // 存放每次同类uri的md5, 防止重复扫描
-    private final Set<String> allScan = new HashSet<>();
+    private final Set<String> allScan = new HashSet<String>();
 
     // POCS
     private IPoc[] pocs;
@@ -95,7 +95,7 @@ public class Scanner implements IScannerCheck {
         // vul?
         boolean isVul = false;
 
-        List<IScanIssue> issues = new ArrayList<>();
+        List<IScanIssue> issues = new ArrayList<IScanIssue>();
         IRequestInfo requestInfo = this.helpers.analyzeRequest(iHttpRequestResponse);
         IResponseInfo responseInfo = this.helpers.analyzeResponse(iHttpRequestResponse.getResponse());
         String url = String.valueOf(requestInfo.getUrl());
@@ -531,12 +531,12 @@ public class Scanner implements IScannerCheck {
 
     /**
      * 判断状态码是否是异常
-     * 排除正常响应码: 200, 404
+     * 排除正常响应码: 200, 404，302
      * @param status_code
      * @return
      */
     private boolean isErrorStatusCode(int status_code) {
-        return Arrays.stream(new Integer[]{200, 404}).noneMatch(e -> e == status_code);
+        return Arrays.stream(new Integer[]{200, 404, 302}).noneMatch(e -> e == status_code);
     }
 
     private IHttpRequestResponse requestWithHeaders() {
