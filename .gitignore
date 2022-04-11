@@ -3,6 +3,7 @@
 .idea/
 out/
 target/
+classes/
 dependency-reduced-pom.xml
 pom.xml.versionsBackup
 .factorypath

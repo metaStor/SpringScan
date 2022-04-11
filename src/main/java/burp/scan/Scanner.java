@@ -117,7 +117,8 @@ public class Scanner implements IScannerCheck {
             if (this.burpExtender.tags.getSettingUi().isErrorCheck()) {
                 // Spring Core RCE (CVE-2022-22965)
                 if (responseInfo.getStatusCode() != 404) {  // 跳过404
-                    IScanIssue errorIssue = this.errorScan(iHttpRequestResponse);
+                    IScanIssue errorIssue = this.errorScan(iHttpRequestResponse, false);
+                    errorIssue = (errorIssue == null) ? this.errorScan(iHttpRequestResponse, true) : errorIssue;
                     if (errorIssue != null) {
                         isVul = true;
                         this.burpExtender.stdout.println(String.format("[+] ErrorChecker found %s Vul!", url));
@@ -143,7 +144,8 @@ public class Scanner implements IScannerCheck {
             if (this.burpExtender.tags.getSettingUi().isReverseCheck()) {
                 // Spring Core RCE (CVE-2022-22965)
                 if (responseInfo.getStatusCode() != 404) {  // 跳过404
-                    IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse);
+                    IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse, false);
+                    reverseIssue = (reverseIssue == null) ? this.reverseScan(iHttpRequestResponse, true) : reverseIssue;
                     if (reverseIssue != null) {
                         isVul = true;
                         this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
@@ -179,6 +181,7 @@ public class Scanner implements IScannerCheck {
                             spelIssue.getHttpMessages()[0]
                     );
                 }
+                this.allScan.add(url_md5);
             }
             // 不存在漏洞, 更新UI
             if (!isVul) {
@@ -221,7 +224,7 @@ public class Scanner implements IScannerCheck {
                 break;
             case Ceye:
                 this.backend = new Ceye(this.burpExtender.callbacks, this.burpExtender);
-                break;  // 待实现
+                break;
         }
         if (this.backend == null) {
 //            this.burpExtender.stdout.println("[+] Load Scanner successfully!");
@@ -232,9 +235,10 @@ public class Scanner implements IScannerCheck {
     /**
      * 使用POC1/POC2进行报错检测漏洞
      * @param httpRequestResponse
+     * @param reverseMethod 是否变换请求
      * @return SpringCoreIssue
      */
-    private IScanIssue errorScan(IHttpRequestResponse httpRequestResponse) {
+    private IScanIssue errorScan(IHttpRequestResponse httpRequestResponse, boolean reverseMethod) {
         byte[] newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机Agent-User头
 //        this.burpExtender.stdout.println(Utils.bytes2Hex(newHeaderRequest));
         IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
@@ -248,12 +252,16 @@ public class Scanner implements IScannerCheck {
         String value2 = String.format(poc11[1], "false");
         // 将poc作为新参数加入请求中
         IParameter newParam = this.helpers.buildParameter(key, value, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);
-        IHttpRequestResponse requestResponse1 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), this.helpers.addParameter(newHeaderRequest, newParam));
+        byte[] newParamReq = this.helpers.addParameter(newHeaderRequest, newParam);
+        if (reverseMethod) newParamReq = this.helpers.toggleRequestMethod(newParamReq);
+        IHttpRequestResponse requestResponse1 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamReq);
         IResponseInfo response1 = this.helpers.analyzeResponse(requestResponse1.getResponse());
         // 第一次请求为报错状态码,
         if (this.isErrorStatusCode(response1.getStatusCode())) {
             newParam = this.helpers.buildParameter(key, value2, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);
-            IHttpRequestResponse requestResponse2 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), this.helpers.addParameter(newHeaderRequest, newParam));
+            newParamReq = this.helpers.addParameter(newHeaderRequest, newParam);
+            if (reverseMethod) newParamReq = this.helpers.toggleRequestMethod(newParamReq);
+            IHttpRequestResponse requestResponse2 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamReq);
             IResponseInfo response2 = this.helpers.analyzeResponse(requestResponse2.getResponse());
             // 第二次正常请求，防止扫到原本就报错的站
             if (!this.isErrorStatusCode(response2.getStatusCode())) {
@@ -282,7 +290,8 @@ public class Scanner implements IScannerCheck {
 
         newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机header
         newParam = this.helpers.buildParameter(key, value, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);
-        requestResponse1 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), this.helpers.addParameter(newHeaderRequest, newParam));
+        newParamReq = this.helpers.addParameter(newHeaderRequest, newParam);
+        requestResponse1 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamReq);
         response1 = this.helpers.analyzeResponse(requestResponse1.getResponse());
         // 第一次请求为报错状态码
         if (this.isErrorStatusCode(response1.getStatusCode())) {
@@ -311,7 +320,7 @@ public class Scanner implements IScannerCheck {
      * @param httpRequestResponse
      * @return SpringCoreIssue
      */
-    private IScanIssue reverseScan(IHttpRequestResponse httpRequestResponse) {
+    private IScanIssue reverseScan(IHttpRequestResponse httpRequestResponse, boolean reverseMethod) {
         byte[] newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机Agent-User头
         IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
         String method = requestInfo.getMethod();
@@ -329,6 +338,7 @@ public class Scanner implements IScannerCheck {
         IParameter param2 = this.helpers.buildParameter(key2, value2, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);
         byte[] newParamsReq = this.helpers.addParameter(newHeaderRequest, param1);
         newParamsReq = this.helpers.addParameter(newParamsReq, param2);
+        if (reverseMethod) newParamsReq = this.helpers.toggleRequestMethod(newParamsReq);
         IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamsReq);
         // 请求是否被ban
         if (requestResponse.getResponse() != null) {
@@ -468,6 +478,29 @@ public class Scanner implements IScannerCheck {
             this.burpExtender.stderr.println(e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
+     * 一共发五个请求：
+     * 包含恶意SpEL表达式的路由 -> 刷新路由 -> 访问添加的路由查看结果 -> 删除路由 -> 刷新路由
+     * @param httpRequestResponse
+     * @return IScanIssue
+     */
+    private IScanIssue CloudGatewayScan(IHttpRequestResponse httpRequestResponse) {
+        return null;
+    }
+
+
+    /**
+     * 刷新路由
+     * /actuator/gateway/refresh
+     * @return
+     */
+    private byte[] CloudGatewayRefresh(IHttpRequestResponse httpRequestResponse) {
+        byte[] newHeader = this.randomHeader(httpRequestResponse);
+        this.helpers.analyzeRequest(newHeader);
+        return null;
     }
 
     /**
