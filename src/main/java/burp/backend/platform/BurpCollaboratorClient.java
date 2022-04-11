@@ -63,4 +63,9 @@ public class BurpCollaboratorClient implements IBackend {
         return true;
     }
 
+    @Override
+    public void close() {
+
+    }
+
 }

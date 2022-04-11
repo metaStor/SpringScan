@@ -35,9 +35,8 @@ public class Ceye implements IBackend {
         this.stdout = new PrintWriter(this.callbacks.getStdout());
         this.stderr = new PrintWriter(this.callbacks.getStderr());
         // init token and api identify
-        this.token = this.burpExtender.tags.getSettingUi().getTokenField();
-        this.api = this.burpExtender.tags.getSettingUi().getApiField();
-        this.rootDomain = Utils.randomStr(3);  // filter max length is 20
+        this.token = this.burpExtender.tags.getSettingUi().getTokenField().trim();
+        this.api = this.burpExtender.tags.getSettingUi().getApiField().trim();
     }
     @Override
     public String getPlatform() {
@@ -55,6 +54,7 @@ public class Ceye implements IBackend {
      */
     @Override
     public String generatePayload() {
+        this.rootDomain = Utils.randomStr(5);  // filter max length is 20
         return this.rootDomain + "." + this.api;
     }
 
@@ -71,7 +71,7 @@ public class Ceye implements IBackend {
     @Override
     public boolean checkResult(String payload) {
         // ready request for flush
-        String url = this.platform + "?token=" + this.token + "&type=dns&filter=" + this.generatePayload();
+        String url = this.platform + "?token=" + this.token + "&type=dns&filter=" + payload;
         try {
             byte[] rawRequest = this.helpers.buildHttpRequest(new URL(url));
             IHttpService service = this.helpers.buildHttpService("api.ceye.io", 80, "HTTP");
@@ -80,7 +80,7 @@ public class Ceye implements IBackend {
             IResponseInfo responseInfo = this.helpers.analyzeResponse(rawResponse);
             String body = new String(rawResponse).substring(responseInfo.getBodyOffset()).trim().toLowerCase();
             // 是否有回连记录
-            return (body.contains(this.generatePayload()));
+            return (body.contains(payload));
         } catch (MalformedURLException e) {
             e.printStackTrace();
             this.stderr.println(e.getMessage());
@@ -91,6 +91,11 @@ public class Ceye implements IBackend {
     @Override
     public boolean flushCache() {
         return true;
+    }
+
+    @Override
+    public void close() {
+
     }
 
 }

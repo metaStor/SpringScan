@@ -19,4 +19,6 @@ public interface IBackend {
 
     boolean flushCache();
 
+    void close();
+
 }

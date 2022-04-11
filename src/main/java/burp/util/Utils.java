@@ -1,13 +1,12 @@
 package burp.util;
 
-import burp.IBurpExtenderCallbacks;
-import burp.IExtensionHelpers;
 import burp.payload.IPoc;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -19,6 +18,44 @@ import java.util.Random;
 public class Utils {
 
     public static Random random = new Random();
+
+    // 静态文件后缀
+    public final static String[] STATIC_FILE_EXT = new String[]{
+            "png",
+            "jpg",
+            "jpeg",
+            "gif",
+            "pdf",
+            "bmp",
+            "js",
+            "css",
+            "ico",
+            "woff",
+            "woff2",
+            "ttf",
+            "otf",
+            "ttc",
+            "svg",
+            "psd",
+            "exe",
+            "zip",
+            "rar",
+            "7z",
+            "msi",
+            "tar",
+            "gz",
+            "mp3",
+            "mp4",
+            "mkv",
+            "swf",
+            "xls",
+            "xlsx",
+            "doc",
+            "docx",
+            "ppt",
+            "pptx",
+            "iso"
+    };
 
     /**
      * MD5加密, 用于只扫描一次同类uri
@@ -44,6 +81,41 @@ public class Utils {
     public static String getUriExt(String url) {
         String pureUrl = url.substring(0, url.contains("?") ? url.indexOf("?") : url.length());
         return (pureUrl.lastIndexOf(".") > -1 ? pureUrl.substring(pureUrl.lastIndexOf(".") + 1) : "").toLowerCase();
+    }
+
+    /**
+     * 取url的uri路径
+     * @param url http://xxx:8080/api/auth-manager-microservice/v1/login/anon/apps?_t=1649647394555kna8
+     * @return uri /api/auth-manager-microservice/v1/login/anon/
+     */
+    public static String getUri(String url) {
+        url = url.replace("https://", "").replace("http://", "");  // 截去http://或https://
+        String pureUrl = url.substring(0, url.contains("?") ? url.indexOf("?") : url.length());  // 排除参数和锚点
+        pureUrl = pureUrl.substring(pureUrl.contains("/") ? pureUrl.indexOf("/") : pureUrl.length(), pureUrl.contains("/") ? pureUrl.lastIndexOf("/") : pureUrl.length());  // 取最后一个/之前的uri
+        return pureUrl + "/";
+    }
+
+    /**
+     * 判断状态码是否是异常
+     * 排除正常响应码: 200, 404，302
+     * @param status_code
+     * @return
+     */
+    public static boolean isErrorStatusCode(int status_code) {
+        return Arrays.stream(new Integer[]{200, 404, 302}).noneMatch(e -> e == status_code);
+    }
+
+    /**
+     * 判断uri是否静态文件,
+     * 使用传统的循环判断，时间复杂度为O(1)
+     * @param url
+     * @return true/false
+     */
+    public static boolean isStaticFile(String url) {
+        for (String ext : STATIC_FILE_EXT) {
+            if (ext.equalsIgnoreCase(Utils.getUriExt(url))) return true;
+        }
+        return false;
     }
 
     /**
