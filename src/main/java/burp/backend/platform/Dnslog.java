@@ -58,10 +58,10 @@ public class Dnslog implements IBackend {
      */
     private void initDomain() {
         try {
-            this.callbacks.printOutput("get domain...");
+//            this.callbacks.printOutput("get domain...");
             Response resp = client.newCall(GetDefaultRequest(this.platform + "/getdomain.php?t=0." + Utils.getRandomLong()).build()).execute();
             rootDomain = resp.body().string();
-            this.callbacks.printOutput(String.format("[*] Domain: %s", rootDomain));
+//            this.callbacks.printOutput(String.format("[*] Domain: %s", rootDomain));
             startSessionHeartbeat();
         } catch (Exception ex) {
             this.callbacks.printError("[-] initDomain failed: " + ex.getMessage());
@@ -110,10 +110,10 @@ public class Dnslog implements IBackend {
         try {
             Response resp = client.newCall(GetDefaultRequest(this.platform + "/getrecords.php?t=0." + Utils.getRandomLong()).build()).execute();
             this.resultCache = resp.body().string().toLowerCase();
-            this.callbacks.printOutput(String.format("Got Dnslog Result OK!: %s", this.resultCache));
+//            this.callbacks.printOutput(String.format("Got Dnslog Result OK!: %s", this.resultCache));
             return true;
         } catch (Exception ex) {
-            this.callbacks.printOutput(String.format("Get Dnslog Result Failed!: %s", ex.getMessage()));
+            this.callbacks.printOutput(String.format("[-] Get Dnslog Result Failed!: %s", ex.getMessage()));
             return false;
         }
     }

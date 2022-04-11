@@ -70,6 +70,9 @@ public class Ceye implements IBackend {
      */
     @Override
     public boolean checkResult(String payload) {
+        // load token and api identify
+        this.token = this.burpExtender.tags.getSettingUi().getTokenField().trim();
+        this.api = this.burpExtender.tags.getSettingUi().getApiField().trim();
         // ready request for flush
         String url = this.platform + "?token=" + this.token + "&type=dns&filter=" + payload;
         try {

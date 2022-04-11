@@ -144,25 +144,25 @@ public class Scanner implements IScannerCheck {
                     );
                 }
                 this.allScan.add(url_md5);
-                // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
-                IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
-                if (gatewayIssue != null) {
-                    isVul = true;
-                    this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
-                    issues.add(gatewayIssue);
-                    // 扫描结果输出到UI
-                    this.burpExtender.tags.getScannerUi().save(
-                            id,
-                            "RCECheck",
-                            this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
-                            String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
-                            String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                            "[+] Spring Cloud GateWay SpEL RCE",
-                            gatewayIssue.getHttpMessages()[0]
-                    );
-                }
-                this.allScan.add(url_md5);
             }
+            // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
+            IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
+            if (gatewayIssue != null) {
+                isVul = true;
+                this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
+                issues.add(gatewayIssue);
+                // 扫描结果输出到UI
+                this.burpExtender.tags.getScannerUi().save(
+                        id,
+                        "RCECheck",
+                        this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
+                        String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
+                        String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                        "[+] Spring Cloud GateWay SpEL RCE",
+                        gatewayIssue.getHttpMessages()[0]
+                );
+            }
+            this.allScan.add(url_md5);
             // 不存在漏洞, 更新UI
             if (!isVul) {
                 this.burpExtender.tags.getScannerUi().save(
@@ -323,8 +323,8 @@ public class Scanner implements IScannerCheck {
         // 请求是否被ban
         if (requestResponse.getResponse() != null) {
             this.burpExtender.stdout.println("[*] Reverse Checking Spring Core RCE for: " + requestInfo.getUrl().toString() + " ...");
-            // 30s内查看是否回连
-            for (int i = 0; i < 3; i++) {
+            // 60s内查看是否回连
+            for (int i = 0; i < 6; i++) {
 //                this.burpExtender.stdout.println("[-] No." + i + " Checking " + requestInfo.getUrl().toString());
                 if (this.backend.checkResult(payload)) {
                     return new SpringIssue(
@@ -401,8 +401,8 @@ public class Scanner implements IScannerCheck {
             // 打完check poc再检测是否回连
             if (is500) {
                 this.burpExtender.stdout.println("[*] Reverse Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString() + " ...");
-                // 30s内查看是否回连
-                for (int i = 0; i < 3; i++) {
+                // 60s内查看是否回连
+                for (int i = 0; i < 6; i++) {
 //                    this.burpExtender.stdout.println("[-] No." + i + " Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString());
                     if (this.backend.checkResult(payload)) {
                         return new SpringIssue(
