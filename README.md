@@ -62,8 +62,6 @@
 |  :----:  | :----:  | :----:  |
 | Spring Core RCE  | Spring Core RCE | Spring Cloud GateWay SPEL RCE |
 | x  | Spring Cloud Function SpEL RCE | x |
-| x  | x | x |
-\
 
 ## 编译
 
