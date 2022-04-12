@@ -47,7 +47,7 @@ public class Dnslog implements IBackend {
             byte[] rawResponse = requestResponse.getResponse();
             IResponseInfo responseInfo = this.helpers.analyzeResponse(rawResponse);
             // 获取响应包body内容 => 即dnslog的子域名
-            this.rootDomain = new String(rawResponse).substring(responseInfo.getBodyOffset()).trim().toLowerCase();
+            this.rootDomain = new String(rawResponse).substring(responseInfo.getBodyOffset()).trim();
             // 提取cookie
             List<ICookie> cookies = responseInfo.getCookies();
             for (ICookie cookie : cookies) {

@@ -9,8 +9,9 @@
 ## 回连平台
 
 - [x] Dnglog
-- [x] BurpCollaboratorClient (默认)
+- [x] BurpCollaboratorClient
 - [x] Ceye
+- [x] Digpm  (默认)
 - [ ] 支持自定义回连平台
 
 ### CVE-2022-22965 检测方法
@@ -91,9 +92,11 @@
 
 ![image-20220411234948718](imgs/image-20220411234948718.png)
 
-插件设置，报错检测方法默认关闭，回连平台默认BurpCollaboratorClient
+插件设置，报错检测方法默认关闭，回连平台默认`Dig.pm`(推荐)
 
 ![image-20220409120720309](imgs/image-20220409120720309.png)
+
+![image-20220413012818703](imgs/image-20220413012818703.png)
 
 target 模块中可以看到漏洞详情
 

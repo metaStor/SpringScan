@@ -155,6 +155,16 @@ public class Utils {
     }
 
     /**
+     * 随机获取 [min, max] 范围内的随机整数
+     * eg: [1, 3] => 1, 2, 3
+     * ps: min为0的时候会计算会少1，如：[0, 3] => 0, 1, 2
+     * @return random int
+     */
+    public static int getRandom(int min, int max){
+        return random.nextInt(max) % (max - min + 1) + min;
+    }
+
+    /**
      * 随机获取long数值
      * @return
      */

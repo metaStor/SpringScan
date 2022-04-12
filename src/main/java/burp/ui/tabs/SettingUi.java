@@ -19,7 +19,7 @@ import java.util.ArrayList;
 public class SettingUi {
 
     public enum Backends {
-        BurpCollaborator, Dnslog, Ceye
+        Digpm, BurpCollaborator, Dnslog, Ceye
     }
 
     private IBurpExtenderCallbacks callbacks;

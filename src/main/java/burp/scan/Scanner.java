@@ -4,6 +4,7 @@ import burp.*;
 import burp.backend.IBackend;
 import burp.backend.platform.BurpCollaboratorClient;
 import burp.backend.platform.Ceye;
+import burp.backend.platform.Digpm;
 import burp.backend.platform.Dnslog;
 import burp.payload.IPoc;
 import burp.ui.tabs.SettingUi;
@@ -196,6 +197,9 @@ public class Scanner implements IScannerCheck {
         // 回连平台初始化
         SettingUi.Backends backendSelected = this.burpExtender.tags.getSettingUi().getBackendPlatform();
         switch (backendSelected) {
+            case Digpm:
+                this.backend = new Digpm(this.burpExtender.callbacks);
+                break;
             case Dnslog:
                 this.backend = new Dnslog(this.burpExtender.callbacks);
                 break;
