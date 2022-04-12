@@ -1,7 +1,3 @@
-import burp.payload.IPoc;
-import burp.payload.pocs.POC3;
-import burp.util.Utils;
-
 /**
  * @author : metaStor
  * @date : Created 2022/4/6 10:05 PM
@@ -14,5 +10,8 @@ public class Test {
         String url2 = String.valueOf("http://localhost:8080/").split("\\?")[0];  // 获取?之前的url
         System.out.println(url);
         System.out.println(url2);
+        String root = "u3yffici9aabcqyfm0gv616ih9nzbo.burpcollaborator.net";
+        String test = "12345." + root;
+        System.out.println(test.split("\\." + root)[0]);
     }
 }

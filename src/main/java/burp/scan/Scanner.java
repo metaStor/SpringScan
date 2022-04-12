@@ -83,7 +83,7 @@ public class Scanner implements IScannerCheck {
                     errorIssue = (errorIssue == null) ? this.errorScan(iHttpRequestResponse, true) : errorIssue;
                     if (errorIssue != null) {
                         isVul = true;
-                        this.burpExtender.stdout.println(String.format("[+] ErrorChecker found %s Vul!", url));
+                        this.burpExtender.stdout.println(String.format("[?] ErrorChecker found %s maybe Vul", url));
                         issues.add(errorIssue);
                         // 扫描结果输出到UI
                         this.burpExtender.tags.getScannerUi().save(
@@ -92,7 +92,7 @@ public class Scanner implements IScannerCheck {
                                 this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getMethod(),
                                 String.valueOf(this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getUrl()),
                                 String.valueOf(this.helpers.analyzeResponse(errorIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                "[+] SpringCore RCE",
+                                "[?] SpringCore RCE (need verify)",
                                 errorIssue.getHttpMessages()[0]
                         );
                     }
@@ -247,10 +247,10 @@ public class Scanner implements IScannerCheck {
             if (!Utils.isErrorStatusCode(response2.getStatusCode())) {
                 return new SpringIssue(
                         requestInfo.getUrl(),
-                        "Spring Core RCE",
+                        "Spring Core RCE (ErrorDetect)",
                         0,
-                        "High",
-                        "Certain",
+                        "Medium",
+                        "UnCertain",
                         null,
                         null,
                         newParam.getName() + "=" + newParam.getValue(),
@@ -279,9 +279,9 @@ public class Scanner implements IScannerCheck {
             if (!Utils.isErrorStatusCode(this.burpExtender.helpers.analyzeResponse(httpRequestResponse.getResponse()).getStatusCode())) {
                 return new SpringIssue(
                         requestInfo.getUrl(),
-                        "Spring Core RCE",
+                        "Spring Core RCE (ErrorDetect)",
                         0,
-                        "High",
+                        "Medium",
                         "UnCertain",
                         null,
                         null,
@@ -304,7 +304,7 @@ public class Scanner implements IScannerCheck {
         byte[] newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机Agent-User头
         IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
         String method = requestInfo.getMethod();
-        String payload = this.backend.generatePayload();
+        String payload = Utils.randomStr(5) + "." + this.backend.generatePayload();
 
         // poc3
         IPoc poc3 = this.pocs[2];
@@ -323,8 +323,8 @@ public class Scanner implements IScannerCheck {
         // 请求是否被ban
         if (requestResponse.getResponse() != null) {
             this.burpExtender.stdout.println("[*] Reverse Checking Spring Core RCE for: " + requestInfo.getUrl().toString() + " ...");
-            // 60s内查看是否回连
-            for (int i = 0; i < 6; i++) {
+            // 30s内查看是否回连
+            for (int i = 0; i < 3; i++) {
 //                this.burpExtender.stdout.println("[-] No." + i + " Checking " + requestInfo.getUrl().toString());
                 if (this.backend.checkResult(payload)) {
                     return new SpringIssue(
@@ -363,7 +363,7 @@ public class Scanner implements IScannerCheck {
         byte[] newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机Agent-User头
         IHttpService httpService = httpRequestResponse.getHttpService();
         IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
-        String payload = this.backend.generatePayload();
+        String payload = Utils.randomStr(5) + "." + this.backend.generatePayload();
 
         // poc4/5
         IPoc poc4 = this.pocs[3];
@@ -401,8 +401,8 @@ public class Scanner implements IScannerCheck {
             // 打完check poc再检测是否回连
             if (is500) {
                 this.burpExtender.stdout.println("[*] Reverse Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString() + " ...");
-                // 60s内查看是否回连
-                for (int i = 0; i < 6; i++) {
+                // 30s内查看是否回连
+                for (int i = 0; i < 3; i++) {
 //                    this.burpExtender.stdout.println("[-] No." + i + " Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString());
                     if (this.backend.checkResult(payload)) {
                         return new SpringIssue(

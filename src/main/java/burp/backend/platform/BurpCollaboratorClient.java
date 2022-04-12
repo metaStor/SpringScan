@@ -1,9 +1,12 @@
 package burp.backend.platform;
 
 import burp.IBurpCollaboratorClientContext;
+import burp.IBurpCollaboratorInteraction;
 import burp.IBurpExtenderCallbacks;
+import burp.IExtensionHelpers;
 import burp.backend.IBackend;
-import burp.util.Utils;
+
+import java.util.List;
 
 /**
  * @author : metaStor
@@ -13,11 +16,16 @@ import burp.util.Utils;
 public class BurpCollaboratorClient implements IBackend {
 
     private final String platform = "burpcollaborator.net";
+    private String rootDomain = "";
     private IBurpCollaboratorClientContext clientContext;
+    private IExtensionHelpers helpers;
 
     // 初始化server
     public BurpCollaboratorClient(IBurpExtenderCallbacks callbacks) {
+        this.helpers = callbacks.getHelpers();
         this.clientContext = callbacks.createBurpCollaboratorClientContext();
+        // 初始化域名
+        this.rootDomain = this.clientContext.generatePayload(true);
     }
 
     @Override
@@ -31,7 +39,7 @@ public class BurpCollaboratorClient implements IBackend {
      */
     @Override
     public String getRootDomain() {
-        return "";
+        return this.rootDomain;
     }
 
     /**
@@ -40,7 +48,7 @@ public class BurpCollaboratorClient implements IBackend {
      */
     @Override
     public String generatePayload() {
-        return this.clientContext.generatePayload(true);
+        return this.rootDomain;
     }
 
     @Override
@@ -55,7 +63,16 @@ public class BurpCollaboratorClient implements IBackend {
      */
     @Override
     public boolean checkResult(String domain) {
-        return this.clientContext.fetchCollaboratorInteractionsFor(domain).size() > 0;
+        // 截取前面五个随机字符
+        String randomChar = domain.split("\\." + this.rootDomain)[0];
+        // fetch 回连结果
+        List<IBurpCollaboratorInteraction> res = clientContext.fetchCollaboratorInteractionsFor(this.rootDomain);
+        for (IBurpCollaboratorInteraction val : res) {
+            if (this.helpers.bytesToString(this.helpers.base64Decode(val.getProperty("raw_query"))).contains(randomChar)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 public class SettingUi {
 
     public enum Backends {
-        Dnslog, BurpCollaborator, Ceye
+        BurpCollaborator, Dnslog, Ceye
     }
 
     private IBurpExtenderCallbacks callbacks;
@@ -56,7 +56,7 @@ public class SettingUi {
         this.checkLabel = new JLabel("检测方法:     ");
         this.reverseLabel = new JLabel("回连方法:     ");
         this.enableCheckBox = new JCheckBox("启动", true);
-        this.errorCheckBox = new JCheckBox("报错检测   ", true);
+        this.errorCheckBox = new JCheckBox("报错检测   ", false);
         this.reverseCheckBox = new JCheckBox("回连检测", true);
 
         this.enableLabel.setForeground(new Color(255, 89, 18));

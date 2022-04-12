@@ -97,12 +97,12 @@ public class Utils {
 
     /**
      * 判断状态码是否是异常
-     * 排除正常响应码: 200, 404，302
+     * 异常响应码: 400, 500, 502, 503
      * @param status_code
      * @return
      */
     public static boolean isErrorStatusCode(int status_code) {
-        return Arrays.stream(new Integer[]{200, 404, 302}).noneMatch(e -> e == status_code);
+        return Arrays.stream(new Integer[]{ 400, 500, 502, 503 }).anyMatch(e -> e == status_code);
     }
 
     /**

@@ -2,7 +2,6 @@ package burp.backend.platform;
 
 import burp.*;
 import burp.backend.IBackend;
-import burp.util.Utils;
 
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -49,13 +48,12 @@ public class Ceye implements IBackend {
     }
 
     /**
-     * `randomStr`.xxxxxx.ceye.io
+     * xxxxxx.ceye.io
      * @return
      */
     @Override
     public String generatePayload() {
-        this.rootDomain = Utils.randomStr(5);  // filter max length is 20
-        return this.rootDomain + "." + this.api;
+        return this.api;  // filter max length is 20
     }
 
     @Override
@@ -83,7 +81,7 @@ public class Ceye implements IBackend {
             IResponseInfo responseInfo = this.helpers.analyzeResponse(rawResponse);
             String body = new String(rawResponse).substring(responseInfo.getBodyOffset()).trim().toLowerCase();
             // 是否有回连记录
-            return (body.contains(payload));
+            return (body.contains(payload.toLowerCase()));
         } catch (MalformedURLException e) {
             e.printStackTrace();
             this.stderr.println(e.getMessage());

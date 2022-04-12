@@ -2,54 +2,36 @@ package burp.backend.platform;
 
 import burp.*;
 import burp.backend.IBackend;
-import burp.util.RandomHeaders;
 import burp.util.Utils;
-import okhttp3.*;
 
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author : metaStor
  * @date : Created 2022/4/8
- * @description: Dnslog (用okhttp3重做)
+ * @description: Dnslog
  * */
 public class Dnslog implements IBackend {
 
     private IBurpExtenderCallbacks callbacks;
+    private IExtensionHelpers helpers;
     private PrintWriter stdout;
     private PrintWriter stderr;
 
-    private String platform = "http://www.dnslog.cn";
+    private ICookie iCookie;
+    private String platform = "http://www.dnslog.cn/";
     private String rootDomain = "";
     private String resultCache = "";
-
-    private Timer timer;
-
-    OkHttpClient client = new OkHttpClient().newBuilder().cookieJar(new CookieJar() {
-                private final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
-
-                @Override
-                public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-                    cookieStore.put(url.host(), cookies);
-                }
-
-                @Override
-                public List<Cookie> loadForRequest(HttpUrl url) {
-                    List<Cookie> cookies = cookieStore.get(url.host());
-                    return cookies != null ? cookies : new ArrayList<Cookie>();
-                }
-            }).connectTimeout(50, TimeUnit.SECONDS).
-            callTimeout(50, TimeUnit.SECONDS).
-            readTimeout(3, TimeUnit.MINUTES).build();
 
     public Dnslog(IBurpExtenderCallbacks callbacks) {
         // init
         this.callbacks = callbacks;
+        this.helpers = this.callbacks.getHelpers();
         this.stdout = new PrintWriter(this.callbacks.getStdout());
         this.stderr = new PrintWriter(this.callbacks.getStderr());
-        this.timer = new Timer();
         this.initDomain();
     }
 
@@ -57,14 +39,27 @@ public class Dnslog implements IBackend {
      * 获取 dnslog 子域名
      */
     private void initDomain() {
+        String url = this.platform + "getdomain.php?t=0." + Utils.getRandomLong();
         try {
-//            this.callbacks.printOutput("get domain...");
-            Response resp = client.newCall(GetDefaultRequest(this.platform + "/getdomain.php?t=0." + Utils.getRandomLong()).build()).execute();
-            rootDomain = resp.body().string();
-//            this.callbacks.printOutput(String.format("[*] Domain: %s", rootDomain));
-            startSessionHeartbeat();
-        } catch (Exception ex) {
-            this.callbacks.printError("[-] initDomain failed: " + ex.getMessage());
+            byte[] rawRequest = this.helpers.buildHttpRequest(new URL(url));
+            IHttpService service = this.helpers.buildHttpService("www.dnslog.cn", 80, "HTTP");
+            IHttpRequestResponse requestResponse = this.callbacks.makeHttpRequest(service, rawRequest);
+            byte[] rawResponse = requestResponse.getResponse();
+            IResponseInfo responseInfo = this.helpers.analyzeResponse(rawResponse);
+            // 获取响应包body内容 => 即dnslog的子域名
+            this.rootDomain = new String(rawResponse).substring(responseInfo.getBodyOffset()).trim().toLowerCase();
+            // 提取cookie
+            List<ICookie> cookies = responseInfo.getCookies();
+            for (ICookie cookie : cookies) {
+                if (cookie.getName().equals("PHPSESSID")) {
+                    this.iCookie = cookie;
+                }
+            }
+            this.stdout.println("[*] Get domain: " + this.rootDomain);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.stdout.println("[-] Fail to get domain");
+            this.stderr.println(e.getMessage());
         }
     }
 
@@ -88,7 +83,7 @@ public class Dnslog implements IBackend {
      */
     @Override
     public String generatePayload() {
-        return Utils.randomStr(5) + "." + this.rootDomain;
+        return this.rootDomain;
     }
 
     @Override
@@ -98,6 +93,7 @@ public class Dnslog implements IBackend {
 
     @Override
     public boolean checkResult(String domain) {
+        this.flushCache();
         return this.resultCache.contains(domain.toLowerCase());
     }
 
@@ -107,37 +103,28 @@ public class Dnslog implements IBackend {
      */
     @Override
     public boolean flushCache() {
+        String url = this.platform + "getrecords.php?t=0." + Utils.getRandomLong();
         try {
-            Response resp = client.newCall(GetDefaultRequest(this.platform + "/getrecords.php?t=0." + Utils.getRandomLong()).build()).execute();
-            this.resultCache = resp.body().string().toLowerCase();
-//            this.callbacks.printOutput(String.format("Got Dnslog Result OK!: %s", this.resultCache));
-            return true;
-        } catch (Exception ex) {
-            this.callbacks.printOutput(String.format("[-] Get Dnslog Result Failed!: %s", ex.getMessage()));
-            return false;
+            byte[] rawRequest = this.helpers.buildHttpRequest(new URL(url));
+            IHttpService service = this.helpers.buildHttpService("www.dnslog.cn", 80, "HTTP");
+            // 加入cookie
+            IParameter cookieParam = this.helpers.buildParameter(this.iCookie.getName(), this.iCookie.getValue(), IParameter.PARAM_COOKIE);
+            byte[] newRawRequest = this.helpers.updateParameter(rawRequest, cookieParam);
+            IHttpRequestResponse requestResponse = this.callbacks.makeHttpRequest(service, newRawRequest);
+            byte[] rawResponse = requestResponse.getResponse();
+            IResponseInfo responseInfo = this.helpers.analyzeResponse(rawResponse);
+            // 获取响应包body内容
+            this.resultCache = new String(rawResponse).substring(responseInfo.getBodyOffset()).trim().toLowerCase();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.stderr.println(e.getMessage());
         }
-    }
-
-    private void startSessionHeartbeat() {
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                flushCache();
-            }
-        }, 0, 10 * 1000); // 10s
-    }
-
-    private Request.Builder GetDefaultRequest(String url) {
-        CacheControl NoCache = new CacheControl.Builder().noCache().noStore().build();
-        Request.Builder requestBuilder = new Request.Builder()
-                .url(url);
-        requestBuilder.header("User-Agent", RandomHeaders.randomHeader());
-        return requestBuilder.cacheControl(NoCache);
+        return true;
     }
 
     @Override
     public void close() {
-        this.timer.cancel();
+
     }
 
 }
