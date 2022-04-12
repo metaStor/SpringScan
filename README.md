@@ -28,6 +28,8 @@
 * 报错检测
 * 回连检测（BurpCollaboratorClient/Dnglos/Ceye）
 
+详细原理 ➡️ [https://www.t00ls.cc/articles-65348.html](https://www.t00ls.cc/articles-65348.html)
+
 检测置信度：
 
 > 回连检测 > 报错检测
