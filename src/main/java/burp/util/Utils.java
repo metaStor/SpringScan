@@ -2,6 +2,7 @@ package burp.util;
 
 import burp.payload.IPoc;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -202,7 +203,12 @@ public class Utils {
      * @return
      */
     public static String urlEncode(String src) {
-        return URLEncoder.encode(src, StandardCharsets.UTF_8);
+        try {
+            return URLEncoder.encode(src, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**
@@ -211,7 +217,12 @@ public class Utils {
      * @return
      */
     public static String urlDecode(String src) {
-        return URLEncoder.encode(src, StandardCharsets.UTF_8);
+        try {
+            return URLEncoder.encode(src, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }
