@@ -53,8 +53,6 @@ public class Scanner implements IScannerCheck {
     public List<IScanIssue> doPassiveScan(IHttpRequestResponse iHttpRequestResponse) {
         // 插件是否开启
         if(!this.burpExtender.tags.getSettingUi().isEnable()) return null;
-        // 初始化回连平台
-        this.initBackend();
         // vul?
         boolean isVul = false;
 
@@ -63,7 +61,11 @@ public class Scanner implements IScannerCheck {
         IResponseInfo responseInfo = this.helpers.analyzeResponse(iHttpRequestResponse.getResponse());
         String url = String.valueOf(requestInfo.getUrl());
         String url_md5 = normalized(requestInfo);
-        if (!Utils.isStaticFile(url) && !this.isChecked(url_md5)) {  // 跳过静态文件和同类uri
+        // 获取插件功能状态
+        boolean isErrorCheck = this.burpExtender.tags.getSettingUi().isErrorCheck();
+        boolean isReverseCheck = this.burpExtender.tags.getSettingUi().isReverseCheck();
+        // 插件是否开启,跳过静态文件和同类uri
+        if ((isErrorCheck || isReverseCheck) && !Utils.isStaticFile(url) && !this.isChecked(url_md5)) {
             this.burpExtender.stdout.println(String.format("[*] Scanning %s", url));
             // 扫描任务状态添加到UI
             int id = this.burpExtender.tags.getScannerUi().add(
@@ -77,7 +79,7 @@ public class Scanner implements IScannerCheck {
             /**
              * 报错扫描
              */
-            if (this.burpExtender.tags.getSettingUi().isErrorCheck()) {
+            if (isErrorCheck) {
                 // Spring Core RCE (CVE-2022-22965)
                 if (responseInfo.getStatusCode() != 404) {  // 跳过404
                     IScanIssue errorIssue = this.errorScan(iHttpRequestResponse, false);
@@ -104,7 +106,9 @@ public class Scanner implements IScannerCheck {
             /**
              * 回连扫描
              */
-            if (this.burpExtender.tags.getSettingUi().isReverseCheck()) {
+            if (isReverseCheck) {
+                // 初始化回连平台
+                this.initBackend();
                 // Spring Core RCE (CVE-2022-22965)
                 if (responseInfo.getStatusCode() != 404) {  // 跳过404
                     IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse, false);
@@ -268,9 +272,9 @@ public class Scanner implements IScannerCheck {
         // 验证poc2
         IPoc poc2 = this.pocs[1];
         String[] poc22 = poc2.genPoc().split("=");
-        String ranStr = Utils.randomStr(3);
-        key = String.format(poc22[0], ranStr);
-        value = String.format(poc22[1], ranStr);
+        int ranNum = Utils.getRandom(0, 10);  // [0, 9]随机数字
+        key = Utils.urlEncode(String.format(poc22[0], ranNum));
+        value = String.format(poc22[1], ranNum);
 
         newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机header
         newParam = this.helpers.buildParameter(key, value, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);
@@ -313,9 +317,9 @@ public class Scanner implements IScannerCheck {
         // poc3
         IPoc poc3 = this.pocs[2];
         String[] poc33 = poc3.genPoc().split("&");
-        String key1 = poc33[0].split("=")[0];
-        String value1 = String.format(poc33[0].split("=")[1], payload, Utils.randomStr(4));
-        String key2 = String.format(poc33[1].split("=")[0], Utils.randomStr(2));
+        String key1 = Utils.urlEncode(poc33[0].split("=")[0]);
+        String value1 = Utils.urlEncode(String.format(poc33[0].split("=")[1], payload, Utils.randomStr(4)));
+        String key2 = Utils.urlEncode(String.format(poc33[1].split("=")[0], Utils.randomStr(2)));
         String value2 = String.format(poc33[1].split("=")[1], Utils.randomStr(2));
         // 构造参数
         IParameter param1 = this.helpers.buildParameter(key1, value1, ("GET".equalsIgnoreCase(method)) ? IParameter.PARAM_URL : IParameter.PARAM_BODY);

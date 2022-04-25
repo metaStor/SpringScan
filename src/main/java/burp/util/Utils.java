@@ -3,6 +3,8 @@ package burp.util;
 import burp.payload.IPoc;
 
 import java.math.BigInteger;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -193,4 +195,23 @@ public class Utils {
         }
         return stringBuilder.toString();
     }
+
+    /**
+     * URL编码
+     * @param src
+     * @return
+     */
+    public static String urlEncode(String src) {
+        return URLEncoder.encode(src, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * URL解码
+     * @param src
+     * @return
+     */
+    public static String urlDecode(String src) {
+        return URLEncoder.encode(src, StandardCharsets.UTF_8);
+    }
+
 }

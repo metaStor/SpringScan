@@ -13,7 +13,7 @@ import java.io.PrintWriter;
 public class BurpExtender implements IBurpExtender, IExtensionStateListener
 {
     private final String NAME = "SpringScan";
-    private final String VERSION = "1.3";
+    private final String VERSION = "1.4";
 
     public IBurpExtenderCallbacks callbacks;
     public IExtensionHelpers helpers;
