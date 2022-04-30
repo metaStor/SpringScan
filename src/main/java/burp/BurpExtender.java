@@ -2,6 +2,7 @@ package burp;
 
 import burp.scan.Scanner;
 import burp.ui.Tags;
+import burp.ui.menu.Menu;
 
 import java.io.PrintWriter;
 
@@ -13,7 +14,7 @@ import java.io.PrintWriter;
 public class BurpExtender implements IBurpExtender, IExtensionStateListener
 {
     private final String NAME = "SpringScan";
-    private final String VERSION = "1.4";
+    private final String VERSION = "1.5";
 
     public IBurpExtenderCallbacks callbacks;
     public IExtensionHelpers helpers;
@@ -50,6 +51,9 @@ public class BurpExtender implements IBurpExtender, IExtensionStateListener
 
         // 注册Scanner
         this.callbacks.registerScannerCheck(this.scanner);
+
+        // 注册menu
+        this.callbacks.registerContextMenuFactory(new Menu(this, this.scanner));
 
         // 输出插件信息
         this.stdout.println(this.extenderInfo());

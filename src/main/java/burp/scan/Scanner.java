@@ -53,9 +53,17 @@ public class Scanner implements IScannerCheck {
     public List<IScanIssue> doPassiveScan(IHttpRequestResponse iHttpRequestResponse) {
         // 插件是否开启
         if(!this.burpExtender.tags.getSettingUi().isEnable()) return null;
+        return this.doScan(iHttpRequestResponse);
+    }
+
+    @Override
+    public List<IScanIssue> doActiveScan(IHttpRequestResponse iHttpRequestResponse, IScannerInsertionPoint iScannerInsertionPoint) {
+        return null;
+    }
+
+    public List<IScanIssue> doScan(IHttpRequestResponse iHttpRequestResponse) {
         // vul?
         boolean isVul = false;
-
         List<IScanIssue> issues = new ArrayList<IScanIssue>();
         IRequestInfo requestInfo = this.helpers.analyzeRequest(iHttpRequestResponse);
         IResponseInfo responseInfo = this.helpers.analyzeResponse(iHttpRequestResponse.getResponse());
@@ -185,11 +193,6 @@ public class Scanner implements IScannerCheck {
             this.burpExtender.stdout.println(String.format("[-] Pass %s", url));
         }
         return issues;
-    }
-
-    @Override
-    public List<IScanIssue> doActiveScan(IHttpRequestResponse iHttpRequestResponse, IScannerInsertionPoint iScannerInsertionPoint) {
-        return null;
     }
 
     @Override
