@@ -5,7 +5,7 @@ import burp.payload.IPoc;
 /**
  * @author : metaStor
  * @date : Created 2022/4/7
- * @description: 报错检测
+ * @description: 回显检测
  * POC:
  * class.module.classLoader.URLs%5bx%5d=x (x为随机数字) => status_code: 400
  * url（正常请求） => 页面正常

@@ -85,7 +85,7 @@ public class Scanner implements IScannerCheck {
                     iHttpRequestResponse
             );
             /**
-             * 报错扫描
+             * 回显扫描
              */
             if (isErrorCheck) {
                 // Spring Core RCE (CVE-2022-22965)
@@ -107,9 +107,26 @@ public class Scanner implements IScannerCheck {
                                 errorIssue.getHttpMessages()[0]
                         );
                     }
-                    // 已扫描uri的集合
-                    this.allScan.add(url_md5);
                 }
+                // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
+                IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
+                if (gatewayIssue != null) {
+                    isVul = true;
+                    this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
+                    issues.add(gatewayIssue);
+                    // 扫描结果输出到UI
+                    this.burpExtender.tags.getScannerUi().save(
+                            id,
+                            "RCECheck",
+                            this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
+                            String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
+                            String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                            "[+] Spring Cloud GateWay SpEL RCE",
+                            gatewayIssue.getHttpMessages()[0]
+                    );
+                }
+                // 已扫描uri的集合
+                this.allScan.add(url_md5);
             }
             /**
              * 回连扫描
@@ -158,24 +175,6 @@ public class Scanner implements IScannerCheck {
                 }
                 this.allScan.add(url_md5);
             }
-            // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
-            IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
-            if (gatewayIssue != null) {
-                isVul = true;
-                this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
-                issues.add(gatewayIssue);
-                // 扫描结果输出到UI
-                this.burpExtender.tags.getScannerUi().save(
-                        id,
-                        "RCECheck",
-                        this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
-                        String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
-                        String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                        "[+] Spring Cloud GateWay SpEL RCE",
-                        gatewayIssue.getHttpMessages()[0]
-                );
-            }
-            this.allScan.add(url_md5);
             // 不存在漏洞, 更新UI
             if (!isVul) {
                 this.burpExtender.tags.getScannerUi().save(
@@ -224,7 +223,7 @@ public class Scanner implements IScannerCheck {
     }
 
     /**
-     * 使用POC1/POC2进行报错检测漏洞
+     * 使用POC1/POC2进行回显检测漏洞
      * @param httpRequestResponse
      * @param reverseMethod 是否变换请求
      * @return SpringCoreIssue
@@ -369,7 +368,7 @@ public class Scanner implements IScannerCheck {
      */
     private IScanIssue CloudFunctionSpelRCE(IHttpRequestResponse httpRequestResponse) {
         // 加入是否是spring指纹的判断
-        if (!this.isSpringFinger(httpRequestResponse)) return null;
+        if (!this.isSpringFinger(httpRequestResponse, false) && !this.isSpringFinger(httpRequestResponse, true)) return null;
         boolean is500 = false;  // 是否打到500响应
         byte[] newHeaderRequest = this.randomHeader(httpRequestResponse);  // 随机Agent-User头
         IHttpService httpService = httpRequestResponse.getHttpService();
@@ -483,7 +482,7 @@ public class Scanner implements IScannerCheck {
      */
     private IScanIssue CloudGatewayScan(IHttpRequestResponse httpRequestResponse) {
         // 这里判断是否有spring 404的特征: Whitelabel Error Page
-        if (!this.isSpringFinger(httpRequestResponse)) return null;
+        if (!this.isSpringFinger(httpRequestResponse, false) && !this.isSpringFinger(httpRequestResponse, true)) return null;
         URL url = this.helpers.analyzeRequest(httpRequestResponse).getUrl();
         String uri = Utils.getUri(url.toString());
         String random_uri = Utils.randomStr(5);
@@ -538,14 +537,20 @@ public class Scanner implements IScannerCheck {
             headers.add("Content-Type: application/json");
             headers.add("Connection: close");
             // 加入POST的POC
-            IParameter param = this.helpers.buildParameter(poc66 + ",{\"", "\"}", IParameter.PARAM_BODY);
-            refreshRequest = this.helpers.addParameter(refreshRequest, param);
+//            IParameter param = this.helpers.buildParameter(poc66 + ",{\"", "\"}", IParameter.PARAM_BODY);
+//            refreshRequest = this.helpers.addParameter(refreshRequest, param);
             // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers+POST内容, 所以要截取
             IRequestInfo requestInfo = this.helpers.analyzeRequest(service, refreshRequest);
             refreshRequest = new String(refreshRequest).substring(requestInfo.getBodyOffset()).getBytes();
             // 组装请求
             byte[] newRequest = this.helpers.buildHttpMessage(headers, refreshRequest);
-            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest);
+            // 加入请求body
+            byte[] poc66Byte = this.helpers.stringToBytes(poc66);
+            byte[] newRequest2 = new byte[newRequest.length + poc66Byte.length];
+            System.arraycopy(newRequest, 0, newRequest2, 0, newRequest.length);
+            System.arraycopy(poc66Byte, 0, newRequest2, newRequest.length, poc66Byte.length);
+            // 发送请求
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest2);
             IResponseInfo responseInfo1 = this.helpers.analyzeResponse(requestResponse.getResponse());
             IRequestInfo requestInfo1 = this.helpers.analyzeRequest(requestResponse.getRequest());
             if (responseInfo1.getStatusCode() == 201) return true;
@@ -633,16 +638,24 @@ public class Scanner implements IScannerCheck {
     }
 
     /**
-     * 随机访问一个uri路径, 判断响应内容是否有spring特征 (Whitelabel Error Page)
+     * SpringBoot 1.x
+     * 随机访问一个uri路z径, 判断响应内容是否有spring特征 (Whitelabel Error Page)
+     *
+     * SpringBoot 2.x
+     * 访问/actuator/xxx, 判断响应内容是否有spring特征 (Whitelabel Error Page)
+     *
      * @param httpRequestResponse
      * @return
      */
-    private boolean isSpringFinger(IHttpRequestResponse httpRequestResponse) {
+    private boolean isSpringFinger(IHttpRequestResponse httpRequestResponse, boolean isVersion2x) {
         try {
             IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
             IHttpService service = httpRequestResponse.getHttpService();
             String url = requestInfo.getUrl().toString();
-            byte[] newRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), Utils.getUri(url) + Utils.randomStr(5)));
+            if (isVersion2x) {  // springboot 2.x
+                url = Utils.getUri(url) + "actuator/" + Utils.randomStr(5);
+            }
+            byte[] newRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), url));
             requestInfo = this.helpers.analyzeRequest(service, newRequest);  // 重新打包好新的uri请求
             // header中Accpet: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
             List<String> headers = requestInfo.getHeaders();

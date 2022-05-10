@@ -5,7 +5,7 @@ import burp.payload.IPoc;
 /**
  * @author : metaStor
  * @date : Created 2022/4/7
- * @description: 报错检测
+ * @description: 回显检测
  * POC:
  * class.module.classLoader.DefaultAssertionStatus=xxx => status_code: 400
  * class.module.classLoader.DefaultAssertionStatus=false => 页面正常
