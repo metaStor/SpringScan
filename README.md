@@ -27,7 +27,7 @@
 因为这个洞上传shell还需要准确的web路径（默认在webapps\ROOT），写ssh和计划任务也需要root权限。实战中用exp去检测漏洞不太现实，所以思路转变到使用其他方法去检测漏洞的存在性。主要通过下面两种方式检测：
 
 * 回显检测
-* 回连检测（BurpCollaboratorClient/Dnglos/Ceye）
+* 回连检测（Digpm/BurpCollaboratorClient/Dnglos/Ceye）
 
 详细原理 ➡️ [https://www.t00ls.cc/articles-65348.html](https://www.t00ls.cc/articles-65348.html)
 
