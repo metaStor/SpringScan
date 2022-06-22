@@ -93,7 +93,8 @@ public class Utils {
      */
     public static String getUri(String url) {
         url = url.replace("https://", "").replace("http://", "");  // 截去http://或https://
-        String pureUrl = url.substring(0, url.contains("?") ? url.indexOf("?") : url.length());  // 排除参数和锚点
+        String pureUrl = url.substring(0, url.contains("#") ? url.indexOf("#") : url.length());  // 排除锚点
+        pureUrl = pureUrl.substring(0, pureUrl.contains("?") ? pureUrl.indexOf("?") : pureUrl.length());  // 排除参数
         pureUrl = pureUrl.substring(pureUrl.contains("/") ? pureUrl.indexOf("/") : pureUrl.length(), pureUrl.contains("/") ? pureUrl.lastIndexOf("/") : pureUrl.length());  // 取最后一个/之前的uri
         return pureUrl + "/";
     }

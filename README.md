@@ -58,7 +58,10 @@
 
 检测方法：
 
-* 首先随机访问一个不存在的路径，根据特征`Whitelabel Error Page`判断是否是Spring框架(1.x/2.x)；是则打POC，分五个请求：`包含恶意SpEL表达式的路由 -> 刷新路由 -> 访问添加的路由查看RCE结果 -> 删除路由 -> 刷新路由`
+* 两种方法判断是否是SpringGateway:
+* 1.随机访问一个不存在的路径，根据特征`Whitelabel Error Page`判断是否是Spring框架(1.x/2.x); 
+* 2.直接访问/actuator/gateway/routes、/prod-api/actuator/gateway/routes，根据特征`route_id`判断；
+* 3.POC分五个请求：`包含恶意SpEL表达式的路由 -> 刷新路由 -> 访问添加的路由查看RCE结果 -> 删除路由 -> 刷新路由`
 
 ## 插件情况
 

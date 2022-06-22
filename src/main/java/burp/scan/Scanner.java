@@ -481,10 +481,18 @@ public class Scanner implements IScannerCheck {
      * @return IScanIssue
      */
     private IScanIssue CloudGatewayScan(IHttpRequestResponse httpRequestResponse) {
+        boolean isProdApi = false;
         // 这里判断是否有spring 404的特征: Whitelabel Error Page
-        if (!this.isSpringFinger(httpRequestResponse, false) && !this.isSpringFinger(httpRequestResponse, true)) return null;
+        if (!this.isSpringFinger(httpRequestResponse, false) && !this.isSpringFinger(httpRequestResponse, true)) {
+            // 无spring 404特征的情况下判断是否有routes
+            if (this.isSpringGatewayFinger(httpRequestResponse, true)) {
+                isProdApi = true;
+            } else if (!this.isSpringGatewayFinger(httpRequestResponse, false)){
+                return null;
+            }
+        }
         URL url = this.helpers.analyzeRequest(httpRequestResponse).getUrl();
-        String uri = Utils.getUri(url.toString());
+        String uri = Utils.getUri(url.toString()) + (isProdApi ? "prod-api/" : "");
         String random_uri = Utils.randomStr(5);
         if (this.CloudGatewayRegisterRoute(httpRequestResponse, uri, random_uri, "whoami")) {
             if (this.CloudGatewayRefresh(httpRequestResponse, uri)) {
@@ -675,6 +683,54 @@ public class Scanner implements IScannerCheck {
             String body = new String(requestResponse.getResponse()).substring(this.helpers.analyzeResponse(requestResponse.getResponse()).getBodyOffset()).toLowerCase();
             if (body.contains("whitelabel error page")) {
                 this.burpExtender.stdout.println("[*] Detect Spring Finger: " + url);
+                return true;
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            this.burpExtender.stderr.println(e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     *
+     * SpringGateway
+     * 访问/actuator/gateway/routes、/prod-api/actuator/gateway/routes
+     * 判断响应内容是否有SpringGateway特征: route_id
+     *
+     * @param httpRequestResponse
+     * @return
+     */
+    private boolean isSpringGatewayFinger(IHttpRequestResponse httpRequestResponse, boolean isProdApi) {
+        try {
+            IRequestInfo requestInfo = this.helpers.analyzeRequest(httpRequestResponse);
+            IHttpService service = httpRequestResponse.getHttpService();
+            String url = Utils.getUri(requestInfo.getUrl().toString());
+            if (isProdApi) {
+                url = url + "prod-api/actuator/gateway/routes";
+            } else {
+                url = url + "actuator/gateway/routes";
+            }
+            byte[] newRequest = this.helpers.buildHttpRequest(new URL(service.getProtocol(), service.getHost(), service.getPort(), url));
+            requestInfo = this.helpers.analyzeRequest(service, newRequest);  // 重新打包好新的uri请求
+            // header中Accpet: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+            List<String> headers = requestInfo.getHeaders();
+            for (String header: headers) {
+                if (header.startsWith("Accept")) {  // 坑点: 带冒号匹配会报错
+                    headers.remove(header);
+                    headers.add("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+                    break;
+                }
+            }
+            // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers内容, 所以要截取
+            IRequestInfo requestInfo1 = this.helpers.analyzeRequest(service, newRequest);
+            newRequest = new String(newRequest).substring(requestInfo1.getBodyOffset()).getBytes();
+            // 组装请求
+            newRequest = this.helpers.buildHttpMessage(headers, newRequest);
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newRequest);
+            String body = new String(requestResponse.getResponse()).substring(this.helpers.analyzeResponse(requestResponse.getResponse()).getBodyOffset()).toLowerCase();
+            if (body.contains("route_id")) {
+                this.burpExtender.stdout.println("[*] Detect SpringGateway Finger: " + url);
                 return true;
             }
         } catch (MalformedURLException e) {
