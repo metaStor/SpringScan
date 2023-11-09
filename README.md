@@ -70,6 +70,13 @@
 | Spring Core RCE | Spring Core RCE |
 |        Spring Cloud GateWay SPEL RCE         | Spring Cloud Function SpEL RCE |
 
+## TODO
+
+- [ ] 解决扫描结果显示一直等待的问题
+- [ ] 配置可保存本地
+- [ ] 优化ScannerUI（增加清除按钮、CVE条目、多个漏洞显示）
+- [ ] 新增其他Spring漏洞
+
 ## 编译
 
 如需编译其他JDK版本，可参考如下方法编译jar包：
