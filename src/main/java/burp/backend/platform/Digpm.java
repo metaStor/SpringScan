@@ -94,8 +94,8 @@ public class Digpm implements IBackend {
     @Override
     public String generatePayload() {
         try {
-            IParameter param = this.helpers.buildParameter("domain", this.rootDomain, IParameter.PARAM_BODY);
-            byte[] rawRequest = this.helpers.buildHttpRequest(new URL(this.platform + "new_gen"));
+            IParameter param = this.helpers.buildParameter("mainDomain", this.rootDomain, IParameter.PARAM_BODY);
+            byte[] rawRequest = this.helpers.buildHttpRequest(new URL(this.platform + "get_sub_domain"));
             rawRequest = this.helpers.toggleRequestMethod(rawRequest);  // GET to POST
             rawRequest = this.helpers.addParameter(rawRequest, param);  // add param
             IHttpRequestResponse requestResponse = this.callbacks.makeHttpRequest(this.service, rawRequest);
@@ -106,8 +106,8 @@ public class Digpm implements IBackend {
             this.stdout.println("[*] Get subdomain: " + response);
             // to Json
             JSONObject domainJson = JSONObject.parseObject(response);
-            this.domain = domainJson.get("domain").toString().trim();
-            this.key = domainJson.get("key").toString().trim();
+            this.domain = domainJson.get("fullDomain").toString().trim();
+            this.key = domainJson.get("subDomain").toString().trim();
             this.token = domainJson.get("token").toString().trim();
             return this.domain;
         } catch (MalformedURLException e) {
@@ -127,17 +127,21 @@ public class Digpm implements IBackend {
      * fetch结果中是否包含pyalod
      * @param payload
      * @return true/false
+     *
+     * TODO
+     * 有多重验证，需要发两个包才能get_results，暂未实现
      */
     @Override
     public boolean checkResult(String payload) {
         try {
-            IParameter param1 = this.helpers.buildParameter("domain", this.rootDomain, IParameter.PARAM_BODY);
+            IParameter param1 = this.helpers.buildParameter("mainDomain", this.rootDomain, IParameter.PARAM_BODY);
             IParameter param2 = this.helpers.buildParameter("token", this.token, IParameter.PARAM_BODY);
+            IParameter param3 = this.helpers.buildParameter("subDomain", this.token, IParameter.PARAM_BODY);
             byte[] rawRequest = this.helpers.buildHttpRequest(new URL(platform + "get_results"));
             rawRequest = this.helpers.toggleRequestMethod(rawRequest);  // GET to POST
             rawRequest = this.helpers.addParameter(rawRequest, param1);
             rawRequest = this.helpers.addParameter(rawRequest, param2);
-            IHttpService service = this.helpers.buildHttpService("dig.pm", 443, true);
+            rawRequest = this.helpers.addParameter(rawRequest, param3);
             IHttpRequestResponse requestResponse = this.callbacks.makeHttpRequest(this.service, rawRequest);
             byte[] rawResponse = requestResponse.getResponse();
             IResponseInfo responseInfo = this.helpers.analyzeResponse(rawResponse);

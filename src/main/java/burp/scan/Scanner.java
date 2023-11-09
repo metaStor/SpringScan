@@ -544,23 +544,14 @@ public class Scanner implements IScannerCheck {
             headers.add("Accept: */*");
             headers.add("Content-Type: application/json");
             headers.add("Connection: close");
-            // 加入POST的POC
-//            IParameter param = this.helpers.buildParameter(poc66 + ",{\"", "\"}", IParameter.PARAM_BODY);
-//            refreshRequest = this.helpers.addParameter(refreshRequest, param);
-            // 截取新请求, buildHttpRequest()之后会包含原本的GET请求内容和自定义构造的headers+POST内容, 所以要截取
-            IRequestInfo requestInfo = this.helpers.analyzeRequest(service, refreshRequest);
-            refreshRequest = new String(refreshRequest).substring(requestInfo.getBodyOffset()).getBytes();
-            // 组装请求
-            byte[] newRequest = this.helpers.buildHttpMessage(headers, refreshRequest);
-            // 加入请求body
-            byte[] poc66Byte = this.helpers.stringToBytes(poc66);
-            byte[] newRequest2 = new byte[newRequest.length + poc66Byte.length];
-            System.arraycopy(newRequest, 0, newRequest2, 0, newRequest.length);
-            System.arraycopy(poc66Byte, 0, newRequest2, newRequest.length, poc66Byte.length);
-            // 发送请求
-            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest2);
+            headers.add("Content-Length: " + poc66.length());
+
+            byte[] poc66_byte = this.helpers.stringToBytes(poc66);
+            byte[] newRequest = this.helpers.buildHttpMessage(headers, poc66_byte);
+//            this.burpExtender.stdout.println(this.helpers.bytesToString(newRequest));
+
+            IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(service, newRequest);
             IResponseInfo responseInfo1 = this.helpers.analyzeResponse(requestResponse.getResponse());
-            IRequestInfo requestInfo1 = this.helpers.analyzeRequest(requestResponse.getRequest());
             if (responseInfo1.getStatusCode() == 201) return true;
         } catch (MalformedURLException e) {
             e.printStackTrace();

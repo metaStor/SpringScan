@@ -69,7 +69,7 @@ public class SettingUi {
         this.reverseLabel.setFont(new Font("Serif", Font.PLAIN, this.reverseLabel.getFont().getSize() + 2));
 
         this.backendSelector = new JComboBox<String>(this.getSelectors());
-        this.backendSelector.setSelectedIndex(0);
+        this.backendSelector.setSelectedIndex(2);
         this.backendSelector.setMaximumSize(this.backendSelector.getPreferredSize());
 
         this.reverseTabs = new JTabbedPane();
