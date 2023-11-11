@@ -1,5 +1,6 @@
 package burp;
 
+import burp.config.ConfigLoader;
 import burp.scan.Scanner;
 import burp.ui.Tags;
 import burp.ui.menu.Menu;
@@ -14,9 +15,9 @@ import java.io.PrintWriter;
 public class BurpExtender implements IBurpExtender, IExtensionStateListener
 {
     private final String NAME = "SpringScan";
-    private final String VERSION = "1.7";
+    private final String VERSION = "1.8";
 
-    public IBurpExtenderCallbacks callbacks;
+    public static IBurpExtenderCallbacks callbacks;
     public IExtensionHelpers helpers;
     public PrintWriter stdout;
     public PrintWriter stderr;
@@ -45,6 +46,9 @@ public class BurpExtender implements IBurpExtender, IExtensionStateListener
 
         // init scanner
         this.scanner = new Scanner(this);
+
+        // init config
+        new ConfigLoader();
 
         // 添加tag标签到ui
         tags = new Tags(callbacks, this.NAME);

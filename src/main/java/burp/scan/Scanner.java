@@ -103,7 +103,7 @@ public class Scanner implements IScannerCheck {
                                 this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getMethod(),
                                 String.valueOf(this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getUrl()),
                                 String.valueOf(this.helpers.analyzeResponse(errorIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                "[?] SpringCore RCE (need verify)",
+                                "[?] CVE-2022-22965 (need verify)",
                                 errorIssue.getHttpMessages()[0]
                         );
                     }
@@ -121,7 +121,7 @@ public class Scanner implements IScannerCheck {
                             this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
                             String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
                             String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                            "[+] Spring Cloud GateWay SpEL RCE",
+                            "[+] CVE-2022-22947",
                             gatewayIssue.getHttpMessages()[0]
                     );
                 }
@@ -149,7 +149,7 @@ public class Scanner implements IScannerCheck {
                                 this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getMethod(),
                                 String.valueOf(this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getUrl()),
                                 String.valueOf(this.helpers.analyzeResponse(reverseIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                "[+] Spring Core RCE",
+                                "[+] CVE-2022-22965",
                                 reverseIssue.getHttpMessages()[0]
                         );
                     }
@@ -169,7 +169,7 @@ public class Scanner implements IScannerCheck {
                             this.burpExtender.helpers.analyzeRequest(spelIssue.getHttpMessages()[0]).getMethod(),
                             String.valueOf(this.burpExtender.helpers.analyzeRequest(spelIssue.getHttpMessages()[0]).getUrl()),
                             String.valueOf(this.helpers.analyzeResponse(spelIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                            "[+] Spring Cloud Function SpEL RCE",
+                            "[+] CVE-2022-22963",
                             spelIssue.getHttpMessages()[0]
                     );
                 }
@@ -257,13 +257,13 @@ public class Scanner implements IScannerCheck {
             if (!Utils.isErrorStatusCode(response2.getStatusCode())) {
                 return new SpringIssue(
                         requestInfo.getUrl(),
-                        "Spring Core RCE (ErrorDetect)",
+                        "CVE-2022-22965",
                         0,
                         "Medium",
                         "UnCertain",
                         null,
                         null,
-                        newParam.getName() + "=" + newParam.getValue(),
+                        "Spring Core RCE (ErrorDetect)" + "\n\n" + newParam.getName() + "=" + newParam.getValue(),
                         null,
                         new IHttpRequestResponse[]{requestResponse2},
                         requestResponse2.getHttpService()
@@ -289,13 +289,13 @@ public class Scanner implements IScannerCheck {
             if (!Utils.isErrorStatusCode(this.burpExtender.helpers.analyzeResponse(httpRequestResponse.getResponse()).getStatusCode())) {
                 return new SpringIssue(
                         requestInfo.getUrl(),
-                        "Spring Core RCE (ErrorDetect)",
+                        "CVE-2022-22965",
                         0,
                         "Medium",
                         "UnCertain",
                         null,
                         null,
-                        newParam.getName() + "=" + newParam.getValue(),
+                        "Spring Core RCE (ErrorDetect)" + "\n\n" + newParam.getName() + "=" + newParam.getValue(),
                         null,
                         new IHttpRequestResponse[]{requestResponse1},
                         requestResponse1.getHttpService()
@@ -339,13 +339,13 @@ public class Scanner implements IScannerCheck {
                 if (this.backend.checkResult(payload)) {
                     return new SpringIssue(
                             requestInfo.getUrl(),
-                            "Spring Core RCE",
+                            "CVE-2022-22965",
                             0,
                             "High",
                             "Certain",
                             null,
                             null,
-                            key1 + "=" + value1 + "&" + key2 + "=" + value2,
+                            "Spring Core RCE" + "\n\n" + key1 + "=" + value1 + "&" + key2 + "=" + value2,
                             null,
                             new IHttpRequestResponse[]{requestResponse},
                             requestResponse.getHttpService()
@@ -417,13 +417,13 @@ public class Scanner implements IScannerCheck {
                     if (this.backend.checkResult(payload)) {
                         return new SpringIssue(
                                 requestInfo.getUrl(),
-                                "Spring Cloud Function SpEL RCE",
+                                "CVE-2022-22963",
                                 0,
                                 "High",
                                 "Certain",
                                 null,
                                 null,
-                                "(Maybe) URI: /functionRouter\n" + "Headers: " + key + ":" + value + "\nor\n" + key + ":" + value2,
+                                "Spring Cloud Function SpEL RCE" + "\n\n" + "(Maybe) URI: /functionRouter\n" + "Headers: " + key + ":" + value + "\nor\n" + key + ":" + value2,
                                 null,
                                 new IHttpRequestResponse[]{httpRequestResponse2},
                                 httpRequestResponse2.getHttpService()
@@ -504,13 +504,13 @@ public class Scanner implements IScannerCheck {
                 }
                 return new SpringIssue(
                         url,
-                        "Spring Cloud GateWay SPEL RCE",
+                        "CVE-2022-22947",
                         0,
                         "High",
                         "Certain",
                         null,
                         null,
-                        "",
+                        "Spring Cloud GateWay SPEL RCE",
                         null,
                         new IHttpRequestResponse[]{requestResponse},
                         requestResponse.getHttpService()

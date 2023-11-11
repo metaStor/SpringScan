@@ -1,12 +1,18 @@
 package burp.ui.tabs;
 
 import burp.IBurpExtenderCallbacks;
+import burp.config.ConfigLoader;
 import burp.util.UIUtil;
+import burp.util.YamlUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author ：metaStor
@@ -37,6 +43,8 @@ public class SettingUi {
     private JComboBox<String> backendSelector;
     private JTextField apiInput;
     private JTextField tokenInput;
+    private JButton SaveButton;  // save all config
+
 
 
     public SettingUi(IBurpExtenderCallbacks callbacks, JTabbedPane tabs) {
@@ -59,6 +67,8 @@ public class SettingUi {
         this.errorCheckBox = new JCheckBox("回显检测   ", true);
         this.reverseCheckBox = new JCheckBox("回连检测", true);
 
+        this.SaveButton = new JButton("SaveConfig");
+
         this.enableLabel.setForeground(new Color(255, 89, 18));
         this.enableLabel.setFont(new Font("Serif", Font.PLAIN, this.enableLabel.getFont().getSize() + 2));
 
@@ -75,6 +85,8 @@ public class SettingUi {
         this.reverseTabs = new JTabbedPane();
         this.reverseTabs.addTab("Ceye", this.getCeyePanel());
 
+        this.SaveButton.addActionListener(this::saveActionListener);
+
         JPanel runPanel = UIUtil.GetXPanel();
         runPanel.add(this.enableLabel);
         runPanel.add(this.enableCheckBox);
@@ -87,6 +99,8 @@ public class SettingUi {
         JPanel reversePanel = UIUtil.GetXPanel();
         reversePanel.add(this.reverseLabel);
         reversePanel.add(this.backendSelector);
+        reversePanel.add(new JLabel("  "));
+        reversePanel.add(this.SaveButton);
 
         JPanel settingPanel = UIUtil.GetYPanel();
         settingPanel.add(runPanel);
@@ -129,6 +143,22 @@ public class SettingUi {
             selectors.add(backend.name().trim());
         }
         return selectors.toArray(new String[selectors.size()]);
+    }
+
+    private void saveActionListener(ActionEvent actionEvent) {
+        Map<String, Object> data = new HashMap<>();
+        List<String> ceyes = new ArrayList<>();
+
+        ceyes.add(this.apiInput.getText());
+        ceyes.add(this.tokenInput.getText());
+
+        data.put("isEnable", this.enableCheckBox.isSelected());
+        data.put("isErrorCheck", this.errorCheckBox.isSelected());
+        data.put("isReverseCheck", this.reverseCheckBox.isSelected());
+        data.put("backendPlat", this.backendSelector.getItemAt(this.backendSelector.getSelectedIndex()));
+        data.put("ceyes", ceyes);
+
+        ConfigLoader.saveConfig(data);
     }
 
     /**

@@ -8,10 +8,10 @@
 
 ## 回连平台
 
-- [x] Dnglog
+- [x] Dnglog (默认)
 - [x] BurpCollaboratorClient
 - [x] Ceye
-- [x] Digpm  (默认)
+- [ ] Digpm
 - [ ] 支持自定义回连平台
 
 ### CVE-2022-22965 检测方法
@@ -65,10 +65,10 @@
 
 ## 插件情况
 
-|    **回显检测**     | **回连检测**  |
-|:---------------:| :----:  |
-| Spring Core RCE | Spring Core RCE |
-|        Spring Cloud GateWay SPEL RCE         | Spring Cloud Function SpEL RCE |
+|             **回显检测**             |             **回连检测**              |
+|:--------------------------------:|:---------------------------------:|
+| Spring Core RCE (CVE-2022-22965) | Spring Core RCE (CVE-2022-22965)  |
+| Spring Cloud GateWay SPEL RCE (CVE-2022-22947) | Spring Cloud Function SpEL RCE （CVE-2022-22963） |
 
 ## TODO
 
@@ -111,7 +111,7 @@ target 模块中可以看到漏洞详情
 
 ![image-20220409124402852](imgs/image-20220409124402852.png)
 
-* 插件设置，检测方法默认全开启，回连平台默认`Dig.pm`(推荐)
+* 插件设置，检测方法默认全开启，回连平台默认`Dnslog`
 
 ![image-20220409120720309](imgs/image-20220409120720309.png)
 
