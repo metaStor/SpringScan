@@ -112,6 +112,16 @@ public class SettingUi {
 
         this.backendUI.add(settingPanel);
         this.backendUI.add(reverseInfoPanel);
+
+        // load config
+        Map<String, Object> configs = ConfigLoader.loadConfig();
+        List<String> ceyes = (List<String>) configs.get("ceyes");
+        this.enableCheckBox.setSelected((Boolean) configs.get("isEnable"));
+        this.errorCheckBox.setSelected((Boolean) configs.get("isErrorCheck"));
+        this.reverseCheckBox.setSelected((Boolean) configs.get("isReverseCheck"));
+        this.backendSelector.setSelectedItem((String) configs.get("backendPlat"));
+        this.apiInput.setText(ceyes.get(0));
+        this.tokenInput.setText(ceyes.get(1));
     }
 
 

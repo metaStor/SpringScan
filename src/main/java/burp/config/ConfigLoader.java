@@ -30,8 +30,6 @@ public class ConfigLoader {
         File configFile = new File(configFileName);
         if (!(configFile.exists() && configFile.isFile())) {
             defaultConfigFile();
-        } else {
-            loadConfig();
         }
     }
 
