@@ -169,6 +169,8 @@ public class SettingUi {
         data.put("ceyes", ceyes);
 
         ConfigLoader.saveConfig(data);
+
+        JOptionPane.showMessageDialog(null, "保存成功");
     }
 
     /**
