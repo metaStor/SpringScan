@@ -1,7 +1,7 @@
 package burp.scan;
 
 import burp.*;
-import burp.CustomException.CustomTimeoutException;
+import burp.CustomException.CustomException;
 import burp.backend.IBackend;
 import burp.backend.platform.BurpCollaboratorClient;
 import burp.backend.platform.Ceye;
@@ -15,7 +15,6 @@ import burp.util.Utils;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 
 /**
  * @author : metaStor
@@ -86,120 +85,108 @@ public class Scanner implements IScannerCheck {
                     "waiting for test results",
                     iHttpRequestResponse
             );
-            try {
-                /**
-                 * 回显扫描
-                 */
-                if (isErrorCheck) {
-                    // Spring Core RCE (CVE-2022-22965)
-                    if (responseInfo.getStatusCode() != 404) {  // 跳过404
-                        IScanIssue errorIssue = this.errorScan(iHttpRequestResponse, false);
-                        errorIssue = (errorIssue == null) ? this.errorScan(iHttpRequestResponse, true) : errorIssue;
-                        if (errorIssue != null) {
-                            isVul = true;
-                            this.burpExtender.stdout.println(String.format("[?] ErrorChecker found %s maybe Vul", url));
-                            issues.add(errorIssue);
-                            // 扫描结果输出到UI
-                            this.burpExtender.tags.getScannerUi().save(
-                                    id,
-                                    "ErrorCheck",
-                                    this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getMethod(),
-                                    String.valueOf(this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getUrl()),
-                                    String.valueOf(this.helpers.analyzeResponse(errorIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                    "[?] CVE-2022-22965 (need verify)",
-                                    errorIssue.getHttpMessages()[0]
-                            );
-                        }
-                    }
-                    // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
-                    IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
-                    if (gatewayIssue != null) {
+            /**
+             * 回显扫描
+             */
+            if (isErrorCheck) {
+                // Spring Core RCE (CVE-2022-22965)
+                if (responseInfo.getStatusCode() != 404) {  // 跳过404
+                    IScanIssue errorIssue = this.errorScan(iHttpRequestResponse, false);
+                    errorIssue = (errorIssue == null) ? this.errorScan(iHttpRequestResponse, true) : errorIssue;
+                    if (errorIssue != null) {
                         isVul = true;
-                        this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
-                        issues.add(gatewayIssue);
+                        this.burpExtender.stdout.println(String.format("[?] ErrorChecker found %s maybe Vul", url));
+                        issues.add(errorIssue);
                         // 扫描结果输出到UI
                         this.burpExtender.tags.getScannerUi().save(
                                 id,
-                                "RCECheck",
-                                this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
-                                String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
-                                String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                "[+] CVE-2022-22947",
-                                gatewayIssue.getHttpMessages()[0]
+                                "ErrorCheck",
+                                this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getMethod(),
+                                String.valueOf(this.burpExtender.helpers.analyzeRequest(errorIssue.getHttpMessages()[0]).getUrl()),
+                                String.valueOf(this.helpers.analyzeResponse(errorIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                                "[?] CVE-2022-22965 (need verify)",
+                                errorIssue.getHttpMessages()[0]
+                        );
+                    }
+                }
+                // Spring Cloud GateWay SPEL RCE (CVE-2022-22947)
+                IScanIssue gatewayIssue = this.CloudGatewayScan(iHttpRequestResponse);
+                if (gatewayIssue != null) {
+                    isVul = true;
+                    this.burpExtender.stdout.println(String.format("[+] RCEChecker found %s Vul!", url));
+                    issues.add(gatewayIssue);
+                    // 扫描结果输出到UI
+                    this.burpExtender.tags.getScannerUi().save(
+                            id,
+                            "RCECheck",
+                            this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getMethod(),
+                            String.valueOf(this.burpExtender.helpers.analyzeRequest(gatewayIssue.getHttpMessages()[0]).getUrl()),
+                            String.valueOf(this.helpers.analyzeResponse(gatewayIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                            "[+] CVE-2022-22947",
+                            gatewayIssue.getHttpMessages()[0]
+                    );
+                }
+                // 已扫描uri的集合
+                this.allScan.add(url_md5);
+            }
+            /**
+             * 回连扫描
+             */
+            if (isReverseCheck) {
+                // 初始化回连平台
+                try {
+                    this.initBackend();
+                } catch (CustomException e) {
+                    this.burpExtender.tags.getScannerUi().save(
+                            id,
+                            "unknown",
+                            requestInfo.getMethod(),
+                            String.valueOf(requestInfo.getUrl()),
+                            String.valueOf(this.helpers.analyzeResponse(iHttpRequestResponse.getResponse()).getStatusCode()),
+                            e.getMessage(),
+                            iHttpRequestResponse
+                    );
+                }
+                // Spring Core RCE (CVE-2022-22965)
+                if (responseInfo.getStatusCode() != 404) {  // 跳过404
+                    IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse, false);
+                    reverseIssue = (reverseIssue == null) ? this.reverseScan(iHttpRequestResponse, true) : reverseIssue;
+                    if (reverseIssue != null) {
+                        isVul = true;
+                        this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
+                        issues.add(reverseIssue);
+                        // 扫描结果输出到UI
+                        this.burpExtender.tags.getScannerUi().save(
+                                id,
+                                "ReverseCheck",
+                                this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getMethod(),
+                                String.valueOf(this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getUrl()),
+                                String.valueOf(this.helpers.analyzeResponse(reverseIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                                "[+] CVE-2022-22965",
+                                reverseIssue.getHttpMessages()[0]
                         );
                     }
                     // 已扫描uri的集合
                     this.allScan.add(url_md5);
                 }
-                /**
-                 * 回连扫描
-                 */
-                if (isReverseCheck) {
-                    // 初始化回连平台
-                    this.initBackend();
-                    // Spring Core RCE (CVE-2022-22965)
-                    if (responseInfo.getStatusCode() != 404) {  // 跳过404
-                        IScanIssue reverseIssue = this.reverseScan(iHttpRequestResponse, false);
-                        reverseIssue = (reverseIssue == null) ? this.reverseScan(iHttpRequestResponse, true) : reverseIssue;
-                        if (reverseIssue != null) {
-                            isVul = true;
-                            this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
-                            issues.add(reverseIssue);
-                            // 扫描结果输出到UI
-                            this.burpExtender.tags.getScannerUi().save(
-                                    id,
-                                    "ReverseCheck",
-                                    this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getMethod(),
-                                    String.valueOf(this.burpExtender.helpers.analyzeRequest(reverseIssue.getHttpMessages()[0]).getUrl()),
-                                    String.valueOf(this.helpers.analyzeResponse(reverseIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                    "[+] CVE-2022-22965",
-                                    reverseIssue.getHttpMessages()[0]
-                            );
-                        }
-                        // 已扫描uri的集合
-                        this.allScan.add(url_md5);
-                    }
-                    // Spring Cloud Function SpEL RCE (CVE-2022-22963)
-                    IScanIssue spelIssue = this.CloudFunctionSpelRCE(iHttpRequestResponse);
-                    if (spelIssue != null) {
-                        isVul = true;
-                        this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
-                        issues.add(spelIssue);
-                        // 扫描结果输出到UI
-                        this.burpExtender.tags.getScannerUi().save(
-                                id,
-                                "ReverseCheck",
-                                this.burpExtender.helpers.analyzeRequest(spelIssue.getHttpMessages()[0]).getMethod(),
-                                String.valueOf(this.burpExtender.helpers.analyzeRequest(spelIssue.getHttpMessages()[0]).getUrl()),
-                                String.valueOf(this.helpers.analyzeResponse(spelIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
-                                "[+] CVE-2022-22963",
-                                spelIssue.getHttpMessages()[0]
-                        );
-                    }
-                    this.allScan.add(url_md5);
+                // Spring Cloud Function SpEL RCE (CVE-2022-22963)
+                IScanIssue spelIssue = this.CloudFunctionSpelRCE(iHttpRequestResponse);
+                if (spelIssue != null) {
+                    isVul = true;
+                    this.burpExtender.stdout.println(String.format("[+] ReverseChecker found %s Vul!", url));
+                    issues.add(spelIssue);
+                    // 扫描结果输出到UI
+                    this.burpExtender.tags.getScannerUi().save(
+                            id,
+                            "ReverseCheck",
+                            this.burpExtender.helpers.analyzeRequest(spelIssue.getHttpMessages()[0]).getMethod(),
+                            String.valueOf(this.burpExtender.helpers.analyzeRequest(spelIssue.getHttpMessages()[0]).getUrl()),
+                            String.valueOf(this.helpers.analyzeResponse(spelIssue.getHttpMessages()[0].getResponse()).getStatusCode()),
+                            "[+] CVE-2022-22963",
+                            spelIssue.getHttpMessages()[0]
+                    );
                 }
-            } catch (CustomTimeoutException timeoutException) {
-                this.burpExtender.stdout.println(String.format("url: %s timeout!", requestInfo.getUrl().toString()));
-                this.burpExtender.tags.getScannerUi().save(
-                        id,
-                        "unknown",
-                        requestInfo.getMethod(),
-                        String.valueOf(requestInfo.getUrl()),
-                        String.valueOf(this.helpers.analyzeResponse(iHttpRequestResponse.getResponse()).getStatusCode()),
-                        "[-] Scan Task Timeout",
-                        iHttpRequestResponse
-                );
-            } catch (Exception e) {
-                this.burpExtender.stdout.println(String.format("url: %s scan unknown error!", requestInfo.getUrl().toString()));
-                this.burpExtender.tags.getScannerUi().save(
-                        id,
-                        "unknown",
-                        requestInfo.getMethod(),
-                        String.valueOf(requestInfo.getUrl()),
-                        String.valueOf(this.helpers.analyzeResponse(iHttpRequestResponse.getResponse()).getStatusCode()),
-                        "[-] Unknown Error",
-                        iHttpRequestResponse
-                );
+                this.allScan.add(url_md5);
             }
             // 不存在漏洞, 更新UI
             if (!isVul) {
@@ -242,9 +229,10 @@ public class Scanner implements IScannerCheck {
                 this.backend = new Ceye(this.burpExtender.callbacks, this.burpExtender);
                 break;
         }
-        if (this.backend == null) {
+        if (this.backend.getRootDomain().equals("")) {
 //            this.burpExtender.stdout.println("[+] Load Scanner successfully!");
             this.burpExtender.stderr.println("[-] Fail to load Scanner.");
+            throw new CustomException("[-] Fail to load " + backendSelected.toString());
         }
     }
 
@@ -357,11 +345,12 @@ public class Scanner implements IScannerCheck {
         if (reverseMethod) newParamsReq = this.helpers.toggleRequestMethod(newParamsReq);
         IHttpRequestResponse requestResponse = this.burpExtender.callbacks.makeHttpRequest(httpRequestResponse.getHttpService(), newParamsReq);
         // 请求是否被ban
-        if (requestResponse.getResponse() != null) {
-            this.burpExtender.stdout.println("[*] Reverse Checking Spring Core RCE for: " + requestInfo.getUrl().toString() + " ...");
-            // 30s内查看是否回连
-            for (int i = 0; i < 3; i++) {
-//                this.burpExtender.stdout.println("[-] No." + i + " Checking " + requestInfo.getUrl().toString());
+        if (this.helpers.analyzeResponse(requestResponse.getResponse()).getStatusCode() == 0) return null;
+        this.burpExtender.stdout.println("[*] Reverse Checking Spring Core RCE for: " + requestInfo.getUrl().toString() + " ...");
+        // 20s内查看是否回连
+        try {
+            for (int i = 0; i < 2; i++) {
+                //                this.burpExtender.stdout.println("[-] No." + i + " Checking " + requestInfo.getUrl().toString());
                 if (this.backend.checkResult(payload)) {
                     return new SpringIssue(
                             requestInfo.getUrl(),
@@ -377,12 +366,11 @@ public class Scanner implements IScannerCheck {
                             requestResponse.getHttpService()
                     );
                 }
-                try {
-                    Thread.sleep(10 * 1000);  // sleep 10s
-                } catch (InterruptedException e) {
-                    this.burpExtender.stderr.println(e.getMessage());
-                }
+                Thread.sleep(10 * 1000);  // sleep 10s
             }
+        } catch (Exception e) {
+                this.burpExtender.stderr.println(e.getMessage());
+                throw new CustomException("[-] BackendPlat is failed");
         }
         return null;
     }
@@ -437,9 +425,9 @@ public class Scanner implements IScannerCheck {
             // 打完check poc再检测是否回连
             if (is500) {
                 this.burpExtender.stdout.println("[*] Reverse Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString() + " ...");
-                // 30s内查看是否回连
-                for (int i = 0; i < 3; i++) {
-//                    this.burpExtender.stdout.println("[-] No." + i + " Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString());
+                // 20s内查看是否回连
+                for (int i = 0; i < 2; i++) {
+                    //                    this.burpExtender.stdout.println("[-] No." + i + " Checking Spring Cloud Function SpEL RCE for: " + requestInfo.getUrl().toString());
                     if (this.backend.checkResult(payload)) {
                         return new SpringIssue(
                                 requestInfo.getUrl(),
@@ -455,11 +443,7 @@ public class Scanner implements IScannerCheck {
                                 httpRequestResponse2.getHttpService()
                         );
                     }
-                    try {
-                        Thread.sleep(10 * 1000);  // sleep 10s
-                    } catch (InterruptedException e) {
-                        this.burpExtender.stderr.println(e.getMessage());
-                    }
+                    Thread.sleep(10 * 1000);  // sleep 10s
                 }
                 return new SpringIssue(
                         requestInfo.getUrl(),
@@ -475,9 +459,10 @@ public class Scanner implements IScannerCheck {
                         httpRequestResponse2.getHttpService()
                 );
             }
-        } catch (MalformedURLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             this.burpExtender.stderr.println(e.getMessage());
+            throw new CustomException("[-] BackendPlat is failed");
         }
         return null;
     }
