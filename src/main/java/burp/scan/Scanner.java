@@ -461,6 +461,19 @@ public class Scanner implements IScannerCheck {
                         this.burpExtender.stderr.println(e.getMessage());
                     }
                 }
+                return new SpringIssue(
+                        requestInfo.getUrl(),
+                        "CVE-2022-22963 [no reverse]",
+                        0,
+                        "High",
+                        "High",
+                        null,
+                        null,
+                        "Spring Cloud Function SpEL RCE" + "\n\n" + "(Maybe) URI: /functionRouter\n" + "Headers: " + key + ":" + value + "\nor\n" + key + ":" + value2,
+                        null,
+                        new IHttpRequestResponse[]{httpRequestResponse2},
+                        httpRequestResponse2.getHttpService()
+                );
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
