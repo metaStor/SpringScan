@@ -25,7 +25,7 @@ import java.util.Map;
 public class SettingUi {
 
     public enum Backends {
-        Digpm, BurpCollaborator, Dnslog, Ceye
+        BurpCollaborator, Dnslog, Ceye
     }
 
     private IBurpExtenderCallbacks callbacks;

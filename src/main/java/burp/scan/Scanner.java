@@ -146,6 +146,7 @@ public class Scanner implements IScannerCheck {
                             e.getMessage(),
                             iHttpRequestResponse
                     );
+                    return issues;
                 }
                 // Spring Core RCE (CVE-2022-22965)
                 if (responseInfo.getStatusCode() != 404) {  // 跳过404
@@ -216,9 +217,6 @@ public class Scanner implements IScannerCheck {
         // 回连平台初始化
         SettingUi.Backends backendSelected = this.burpExtender.tags.getSettingUi().getBackendPlatform();
         switch (backendSelected) {
-            case Digpm:
-                this.backend = new Digpm(this.burpExtender.callbacks);
-                break;
             case Dnslog:
                 this.backend = new Dnslog(this.burpExtender.callbacks);
                 break;
